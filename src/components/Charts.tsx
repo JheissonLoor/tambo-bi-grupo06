@@ -4,6 +4,8 @@ import { money, number } from "../utils/format";
 type ChartItem = { label: string; value: number; color?: string };
 
 export function BarChart({ data, height = 230, moneyValues = true }: { data: ChartItem[]; height?: number; moneyValues?: boolean }) {
+  const titleId = useId();
+  const descriptionId = useId();
   const max = Math.max(...data.map((item) => item.value), 1);
   const width = 680;
   const left = 50;
@@ -12,7 +14,9 @@ export function BarChart({ data, height = 230, moneyValues = true }: { data: Cha
   const slot = (width - left - 12) / Math.max(data.length, 1);
   const barWidth = Math.min(52, slot * 0.58);
   return (
-    <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Gráfico de barras">
+    <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
+      <title id={titleId}>Gráfico de barras</title>
+      <desc id={descriptionId}>{describeItems(data, moneyValues ? (value) => money(value) : (value) => number(value, 1))}</desc>
       {[0, .25, .5, .75, 1].map((ratio) => {
         const y = 10 + chartHeight * (1 - ratio);
         return <g key={ratio}><line x1={left} x2={width - 8} y1={y} y2={y} className="chart-grid" /><text x={left - 8} y={y + 4} textAnchor="end" className="chart-axis">{moneyValues ? number(max * ratio, 0) : number(max * ratio, 0)}</text></g>;
@@ -25,7 +29,7 @@ export function BarChart({ data, height = 230, moneyValues = true }: { data: Cha
           <g key={`${item.label}-${index}`} className="chart-mark">
             <title>{`${item.label}: ${moneyValues ? money(item.value) : number(item.value, 1)}`}</title>
             <rect x={x} y={y} width={barWidth} height={h} rx={6} fill={item.color ?? "#f5a623"} />
-            <text x={x + barWidth / 2} y={Math.max(10, y - 7)} textAnchor="middle" className="chart-value">{moneyValues ? money(item.value, 0) : number(item.value, 1)}</text>
+            <text x={x + barWidth / 2} y={Math.max(10, y - 7)} textAnchor="middle" className="chart-value">{moneyValues ? money(item.value, 2) : number(item.value, 1)}</text>
             <text x={x + barWidth / 2} y={height - 15} textAnchor="middle" className="chart-label">{shortLabel(item.label)}</text>
           </g>
         );
@@ -36,6 +40,8 @@ export function BarChart({ data, height = 230, moneyValues = true }: { data: Cha
 
 export function LineAreaChart({ data, secondaryData, height = 245 }: { data: Array<{ label: string; value: number }>; secondaryData?: Array<{ label: string; value: number }>; height?: number }) {
   const gradient = useId();
+  const titleId = useId();
+  const descriptionId = useId();
   const width = 720;
   const pad = { left: 44, right: 14, top: 18, bottom: 34 };
   const innerW = width - pad.left - pad.right;
@@ -58,7 +64,9 @@ export function LineAreaChart({ data, secondaryData, height = 245 }: { data: Arr
   const area = points.length ? `M ${points[0].x} ${pad.top + innerH} L ${points.map((point) => `${point.x} ${point.y}`).join(" L ")} L ${points.at(-1)!.x} ${pad.top + innerH} Z` : "";
   return (
     <div className="line-chart-wrap">
-    <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Tendencia de ventas">
+    <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
+      <title id={titleId}>Tendencia de ventas</title>
+      <desc id={descriptionId}>{`Serie principal: ${describeItems(data, (value) => money(value))}${secondaryData ? `. Serie comparativa: ${describeItems(secondaryData, (value) => money(value))}` : ""}`}</desc>
       <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f5a623" stopOpacity=".32" /><stop offset="1" stopColor="#f5a623" stopOpacity="0" /></linearGradient></defs>
       {[0, .25, .5, .75, 1].map((ratio) => {
         const y = pad.top + innerH * (1 - ratio);
@@ -98,12 +106,16 @@ export function DivergingBars({ data }: { data: ChartItem[] }) {
   );
 }
 
-export function DonutChart({ data, centerLabel }: { data: ChartItem[]; centerLabel: string }) {
+export function DonutChart({ data, centerLabel, valueFormatter = (value) => number(value, 0), centerFormatter = valueFormatter }: { data: ChartItem[]; centerLabel: string; valueFormatter?: (value: number) => string; centerFormatter?: (value: number) => string }) {
+  const titleId = useId();
+  const descriptionId = useId();
   const total = data.reduce((sum, item) => sum + item.value, 0) || 1;
   let offset = 0;
   return (
     <div className="donut-wrap">
-      <svg viewBox="0 0 180 180" className="donut" role="img" aria-label="Distribución">
+      <svg viewBox="0 0 180 180" className="donut" role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
+        <title id={titleId}>Distribución de {centerLabel}</title>
+        <desc id={descriptionId}>{describeItems(data, valueFormatter)}</desc>
         <circle cx="90" cy="90" r="62" fill="none" stroke="#212a36" strokeWidth="24" />
         {data.map((item, index) => {
           const part = item.value / total;
@@ -112,22 +124,26 @@ export function DonutChart({ data, centerLabel }: { data: ChartItem[]; centerLab
           offset += part;
           return <circle key={item.label} cx="90" cy="90" r="62" fill="none" stroke={item.color ?? palette[index % palette.length]} strokeWidth="24" strokeDasharray={dash} transform={`rotate(${rotation} 90 90)`}><title>{`${item.label}: ${number(part * 100, 1)}%`}</title></circle>;
         })}
-        <text x="90" y="86" textAnchor="middle" className="donut-number">{number(total, 0)}</text>
+        <text x="90" y="86" textAnchor="middle" className="donut-number">{centerFormatter(total)}</text>
         <text x="90" y="105" textAnchor="middle" className="donut-label">{centerLabel}</text>
       </svg>
-      <div className="legend">{data.map((item, index) => <span key={item.label}><i style={{ background: item.color ?? palette[index % palette.length] }} />{item.label}<b>{number(item.value, 0)}</b></span>)}</div>
+      <div className="legend">{data.map((item, index) => <span key={item.label}><i style={{ background: item.color ?? palette[index % palette.length] }} />{item.label}<b>{valueFormatter(item.value)}</b></span>)}</div>
     </div>
   );
 }
 
 export function ScatterPlot({ data }: { data: Array<{ real: number; projected: number; id: number }> }) {
+  const titleId = useId();
+  const descriptionId = useId();
   const width = 620, height = 300, pad = 38;
   const values = data.flatMap((point) => [point.real, point.projected]);
   const min = Math.min(...values, 0), max = Math.max(...values, 1), span = Math.max(max - min, 1);
   const x = (value: number) => pad + (value - min) * (width - pad * 2) / span;
   const y = (value: number) => height - pad - (value - min) * (height - pad * 2) / span;
   return (
-    <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Venta real frente a proyectada">
+    <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
+      <title id={titleId}>Venta real frente a venta proyectada</title>
+      <desc id={descriptionId}>{`${data.length} observaciones de prueba. Cada punto compara la venta real con la estimación del modelo técnico.`}</desc>
       {[0, .25, .5, .75, 1].map((ratio) => <g key={ratio}><line x1={pad} x2={width - pad} y1={y(min + span * ratio)} y2={y(min + span * ratio)} className="chart-grid" /><line y1={pad} y2={height - pad} x1={x(min + span * ratio)} x2={x(min + span * ratio)} className="chart-grid" /></g>)}
       <line x1={x(min)} y1={y(min)} x2={x(max)} y2={y(max)} stroke="#66707f" strokeDasharray="5 5" />
       {data.map((point) => <circle key={point.id} cx={x(point.real)} cy={y(point.projected)} r="5" fill="#4cc9e6" fillOpacity=".82" stroke="#0c1017" strokeWidth="1"><title>{`Venta ${point.id}: real ${money(point.real)}, proyectada ${money(point.projected)}`}</title></circle>)}
@@ -139,3 +155,5 @@ export function ScatterPlot({ data }: { data: Array<{ real: number; projected: n
 
 const palette = ["#f5a623", "#ff6b5e", "#4cc9e6", "#9b8cff", "#8794a8"];
 const shortLabel = (label: string) => label.length > 12 ? `${label.slice(0, 11)}…` : label;
+const describeItems = (data: ChartItem[], formatter: (value: number) => string) =>
+  data.length ? data.map((item) => `${item.label}: ${formatter(item.value)}`).join("; ") : "Sin datos disponibles.";

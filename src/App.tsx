@@ -4,6 +4,7 @@ import { FiltersProvider } from "./context/FiltersContext";
 import {
   ArchitecturePage,
   CustomersPage,
+  DataDictionaryPage,
   GovernancePage,
   HefestoPage,
   ModelPage,
@@ -23,6 +24,7 @@ const pages = [
   ["predictivo", PredictivePage],
   ["power-bi", PowerBiPage],
   ["modelo", ModelPage],
+  ["diccionario", DataDictionaryPage],
   ["arquitectura", ArchitecturePage],
   ["hefesto", HefestoPage],
   ["gobierno", GovernancePage],

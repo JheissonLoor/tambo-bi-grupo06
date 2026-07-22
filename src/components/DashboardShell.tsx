@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronsLeft,
   Database,
+  BookOpenText,
   Layers3,
   LayoutDashboard,
   Menu,
@@ -41,6 +42,7 @@ const navGroups: Array<{ label: string; items: Array<{ id: string; label: string
     label: "DOCUMENTACIÓN",
     items: [
       { id: "modelo", label: "Modelo de datos", icon: Database },
+      { id: "diccionario", label: "Diccionario de datos", icon: BookOpenText },
       { id: "arquitectura", label: "Arquitectura & ETL", icon: Workflow },
       { id: "hefesto", label: "Metodología Hefesto", icon: Layers3 },
       { id: "gobierno", label: "Gobierno de datos", icon: ShieldCheck },
@@ -56,6 +58,7 @@ const titles: Record<string, [string, string]> = {
   predictivo: ["Bloque Análisis", "Modelo predictivo"],
   "power-bi": ["Bloque Análisis", "Dashboard Power BI"],
   modelo: ["Documentación", "Modelo de datos"],
+  diccionario: ["Documentación", "Diccionario de datos"],
   arquitectura: ["Documentación", "Arquitectura & ETL"],
   hefesto: ["Documentación", "Metodología Hefesto"],
   gobierno: ["Documentación", "Gobierno de datos"],
@@ -74,7 +77,7 @@ export function DashboardShell({ page, children }: { page: string; children: Rea
   return (
     <div className={`app-shell ${collapsed ? "app-shell--collapsed" : ""}`}>
       {mobileOpen ? <button className="sidebar-scrim" type="button" aria-label="Cerrar navegación" onClick={() => setMobileOpen(false)} /> : null}
-      <aside className={`sidebar ${mobileOpen ? "sidebar--open" : ""}`}>
+      <aside id="dashboard-navigation" className={`sidebar ${mobileOpen ? "sidebar--open" : ""}`} aria-label="Navegación principal">
         <div className="brand">
           <div className="brand__mark">T+</div>
           <div className="brand__copy"><strong>Tambo+</strong><span>TABLERO · SEDE UC</span></div>
@@ -104,7 +107,7 @@ export function DashboardShell({ page, children }: { page: string; children: Rea
       <div className="workspace">
         <header className="topbar">
           <div className="topbar__title">
-            <button className="icon-button mobile-menu" type="button" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación"><Menu size={19} /></button>
+            <button className="icon-button mobile-menu" type="button" onClick={() => setMobileOpen(true)} aria-label="Abrir navegación" aria-expanded={mobileOpen} aria-controls="dashboard-navigation"><Menu size={19} /></button>
             <button className="icon-button collapsed-menu" type="button" onClick={() => setCollapsed(false)} aria-label="Expandir navegación"><PanelLeftOpen size={19} /></button>
             <div><span>{kicker}</span><h1>{title}</h1></div>
           </div>
@@ -130,6 +133,15 @@ function GlobalFilters() {
     ? `${filters.fechaDesde ? shortDate(filters.fechaDesde) : "Inicio"} – ${filters.fechaHasta ? shortDate(filters.fechaHasta) : "Fin"}`
     : period;
 
+  useEffect(() => {
+    if (!dateOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDateOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [dateOpen]);
+
   return (
     <div className="filters" aria-label="Filtros globales">
       <FilterSelect label="Tienda" value={filters.tiendaId} options={query.data?.tiendas ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("tiendaId", value)} />
@@ -137,13 +149,13 @@ function GlobalFilters() {
       <FilterSelect label="Campaña" value={filters.campaniaId} options={query.data?.campanias ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("campaniaId", value)} />
       <FilterSelect label="Cliente" value={filters.tipoClienteId} options={query.data?.tiposCliente ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("tipoClienteId", value)} />
       <div className="date-filter">
-        <button className={`filter-chip ${filters.fechaDesde || filters.fechaHasta ? "filter-chip--active" : ""}`} type="button" onClick={() => setDateOpen((open) => !open)}>
+        <button className={`filter-chip ${filters.fechaDesde || filters.fechaHasta ? "filter-chip--active" : ""}`} type="button" onClick={() => setDateOpen((open) => !open)} aria-expanded={dateOpen} aria-controls="date-filter-popover" aria-haspopup="dialog">
           <span>Rango</span><b>{dateLabel}</b><ChevronDown size={14} />
         </button>
         {dateOpen ? (
           <>
             <button className="menu-scrim" type="button" aria-label="Cerrar fechas" onClick={() => setDateOpen(false)} />
-            <div className="date-popover">
+            <div id="date-filter-popover" className="date-popover" role="dialog" aria-label="Rango de fechas">
               <label>Desde<input type="date" min={query.data?.fechaMin} max={filters.fechaHasta ?? query.data?.fechaMax} value={filters.fechaDesde ?? ""} onChange={(event) => setDateRange(event.target.value || null, filters.fechaHasta)} /></label>
               <label>Hasta<input type="date" min={filters.fechaDesde ?? query.data?.fechaMin} max={query.data?.fechaMax} value={filters.fechaHasta ?? ""} onChange={(event) => setDateRange(filters.fechaDesde, event.target.value || null)} /></label>
               <button type="button" onClick={() => { setDateRange(null, null); setDateOpen(false); }}>Periodo completo</button>

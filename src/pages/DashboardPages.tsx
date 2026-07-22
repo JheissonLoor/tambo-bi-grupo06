@@ -1,10 +1,13 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, BadgeCheck, BarChart3, Database, Layers3, ShieldCheck, Sparkles, Workflow } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { AlertTriangle, ArrowRight, BadgeCheck, BarChart3, Database, Layers3, Search, ShieldCheck, Sparkles, Workflow } from "lucide-react";
 import { BarChart, DivergingBars, DonutChart, LineAreaChart, ScatterPlot } from "../components/Charts";
 import { KpiCard, Tile } from "../components/Tile";
 import { filtersKey } from "../components/DashboardShell";
 import { useDashboardFilters } from "../context/FiltersContext";
 import { getCustomers, getPredictive, getPromotions, getSales, getSummary } from "../data/tamboDataService";
+import { dataDictionary } from "../data/dataDictionary";
 import { money, number } from "../utils/format";
 
 const tones = ["#f5a623", "#ff6b5e", "#4cc9e6", "#9b8cff", "#8794a8"];
@@ -34,7 +37,7 @@ export function SummaryPage() {
         <KpiCard id="kpi-ventas-promocion" label="Ventas por promoción" value={money(data?.kpis.ventasPromocion)} detail={`${number(data?.kpis.transacciones)} transacciones filtradas`} tone="amber" exportRows={data ? [{ ventas_promocion: data.kpis.ventasPromocion }] : []} {...state} />
         <KpiCard id="kpi-margen" label="Margen de ganancia" value={`${number(data?.kpis.margenPorcentaje, 1)}%`} detail={`${money(data?.kpis.margenImporte)} acumulado`} tone="coral" exportRows={data ? [{ margen_porcentaje: data.kpis.margenPorcentaje, margen_importe: data.kpis.margenImporte }] : []} {...state} />
         <KpiCard id="kpi-incremento" label="Incremento de ventas" value={`${number(data?.kpis.incrementoPorcentaje, 1)}%`} detail="Con promoción vs. sin promoción" tone="teal" exportRows={data ? [{ incremento_porcentaje: data.kpis.incrementoPorcentaje }] : []} {...state} />
-        <KpiCard id="kpi-frecuencia" label="Frecuencia de uso" value={`${number(data?.kpis.frecuenciaUso, 2)} / 3`} detail={`${number(data?.kpis.respuestas)} respuestas de encuesta`} tone="violet" exportRows={data ? [{ frecuencia_uso: data.kpis.frecuenciaUso, respuestas: data.kpis.respuestas }] : []} {...state} />
+        <KpiCard id="kpi-frecuencia" label="Frecuencia declarada de uso" value={`${number(data?.kpis.frecuenciaUso, 2)} / 3`} detail={`Promedio de ${number(data?.kpis.respuestas)} respuestas · escala 0–3`} tone="violet" exportRows={data ? [{ frecuencia_uso: data.kpis.frecuenciaUso, respuestas: data.kpis.respuestas }] : []} {...state} />
       </div>
       <div className="analysis-grid analysis-grid--summary-top">
         <Tile id="resumen-tendencia" title="Tendencia de ventas" subtitle="agregación diaria · 01–30 junio 2026" className="tile--tall" exportRows={asRows(data?.tendencia ?? [])} empty={data?.tendencia.length === 0} {...state}>
@@ -46,7 +49,7 @@ export function SummaryPage() {
       </div>
       <div className="analysis-grid analysis-grid--summary-bottom">
         <Tile id="resumen-margen-categorias" title="Margen por categoría" subtitle="participación en la utilidad" exportRows={asRows(salesQuery.data?.categorias ?? [])} empty={salesQuery.data?.categorias.length === 0} {...salesState}>
-          {salesQuery.data ? <DonutChart centerLabel="utilidad" data={salesQuery.data.categorias.map((item, index) => ({ label: item.categoria, value: Math.max(0, item.margen), color: tones[index % tones.length] }))} /> : null}
+          {salesQuery.data ? <DonutChart centerLabel="S/ utilidad" valueFormatter={(value) => money(value, 2)} centerFormatter={(value) => number(value, 2)} data={salesQuery.data.categorias.map((item, index) => ({ label: item.categoria, value: Math.max(0, item.margen), color: tones[index % tones.length] }))} /> : null}
         </Tile>
         <Tile id="insight-2x1" title="Hallazgo crítico" subtitle="insight que justifica el proyecto" className="insight-tile" exportRows={data ? [{ ...data.insight2x1 }] : []} {...state}>
           {data ? <div className="insight-layout insight-layout--compact">
@@ -112,11 +115,12 @@ export function CustomersPage() {
   const data = query.data;
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
   const segment = data?.segmento1825;
+  const dominantAge = data ? [...data.edades].sort((a, b) => b.porcentaje - a.porcentaje)[0] : undefined;
   return <div className="page-stack">
     <div className="kpi-grid kpi-grid--3">
       <KpiCard id="clientes-respuestas" label="Respuestas" value={number(data?.kpis.respuestas)} detail="Encuestas válidas" exportRows={data ? [{ respuestas: data.kpis.respuestas }] : []} {...state} />
-      <KpiCard id="clientes-rango" label="Rango de edades" value={data ? `${number(data.kpis.edad_minima)}–${number(data.kpis.edad_maxima)}` : "—"} detail="Edad mínima y máxima" tone="teal" exportRows={data ? [{ edad_minima: data.kpis.edad_minima, edad_maxima: data.kpis.edad_maxima }] : []} {...state} />
-      <KpiCard id="clientes-frecuencia" label="Frecuencia de promoción" value={`${number(data?.kpis.frecuencia_media, 2)} / 3`} detail="Media de uso declarada" tone="violet" exportRows={data ? [{ frecuencia_media: data.kpis.frecuencia_media }] : []} {...state} />
+      <KpiCard id="clientes-rango" label="Segmento de edad dominante" value={dominantAge ? `${dominantAge.label} años` : "—"} detail={dominantAge ? `${number(dominantAge.porcentaje, 1)}% de las respuestas filtradas` : "Sin respuestas"} tone="teal" exportRows={data ? asRows(data.edades) : []} {...state} />
+      <KpiCard id="clientes-frecuencia" label="Frecuencia declarada de uso" value={`${number(data?.kpis.frecuencia_media, 2)} / 3`} detail="Promedio de encuesta · escala 0–3" tone="violet" exportRows={data ? [{ frecuencia_media: data.kpis.frecuencia_media }] : []} {...state} />
     </div>
     <div className="analysis-grid analysis-grid--3">
       <Tile id="clientes-edades" title="Rangos de edad" subtitle="distribución de respuestas" exportRows={asRows(data?.edades ?? [])} empty={data?.edades.length === 0} {...state}>{data ? <DonutChart data={data.edades.map((item, index) => ({ label: item.label, value: item.respuestas, color: tones[index] }))} centerLabel="respuestas" /> : null}</Tile>
@@ -132,7 +136,9 @@ export function CustomersPage() {
 export function PredictivePage() {
   const { filters } = useDashboardFilters();
   const query = useQuery({ queryKey: ["tambo", "predictive", ...filtersKey(filters)], queryFn: ({ signal }) => getPredictive(filters, signal) });
+  const evidenceQuery = useQuery({ queryKey: ["tambo", "customers", ...filtersKey(filters)], queryFn: ({ signal }) => getCustomers(filters, signal) });
   const data = query.data;
+  const segment = evidenceQuery.data?.segmento1825;
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
   return <div className="page-stack">
     <div className="kpi-grid kpi-grid--3">
@@ -140,12 +146,16 @@ export function PredictivePage() {
       <KpiCard id="modelo-mae" label="MAE" value={data?.metricas.mae == null ? "—" : money(data.metricas.mae)} detail="Error absoluto medio" tone="teal" exportRows={data ? [{ mae: data.metricas.mae }] : []} {...state} />
       <KpiCard id="modelo-rmse" label="RMSE" value={data?.metricas.rmse == null ? "—" : money(data.metricas.rmse)} detail="Raíz del error cuadrático" tone="violet" exportRows={data ? [{ rmse: data.metricas.rmse }] : []} {...state} />
     </div>
-    <div className="model-banner"><Sparkles size={22} /><div><strong>{data?.modelo.algoritmo ?? "Regresión lineal múltiple"}</strong><span>{data ? `${data.modelo.entrenamiento}/${data.modelo.prueba} · semilla ${data.modelo.semilla} · ${data.modelo.version}` : "Cargando versión reproducible"}</span></div></div>
+    <div className="model-banner"><Sparkles size={22} /><div><strong>Validación técnica del pipeline · {data?.modelo.algoritmo ?? "Regresión lineal múltiple"}</strong><span>{data ? `n = 100 datos sintéticos · ${data.modelo.entrenamiento}/${data.modelo.prueba} · semilla ${data.modelo.semilla} · ${data.modelo.version}` : "Cargando versión reproducible"}</span></div></div>
+    <div className="methodology-note" role="note"><AlertTriangle size={19} /><div><strong>Alcance metodológico</strong><p>Estas métricas validan que el flujo de entrenamiento, almacenamiento y visualización sea reproducible. No prueban capacidad predictiva sobre ventas reales ni deben usarse para decisiones comerciales sin datos históricos observados y validación externa.</p></div></div>
     <div className="analysis-grid analysis-grid--2">
       <Tile id="modelo-coeficientes" title="Importancia de variables" subtitle="coeficientes estandarizados" exportRows={asRows(data?.coeficientes ?? [])} empty={data?.coeficientes.length === 0} {...state}>{data ? <DivergingBars data={data.coeficientes.map((item) => ({ label: variableLabel(item.variable), value: item.coeficiente_estandarizado }))} /> : null}</Tile>
       <Tile id="modelo-scatter" title="Real frente a proyectado" subtitle="conjunto de prueba filtrado" exportRows={asRows(data?.predicciones ?? [])} empty={data?.predicciones.length === 0} {...state}>{data ? <ScatterPlot data={data.predicciones.map((point) => ({ id: point.idVenta, real: point.real, projected: point.proyectada }))} /> : null}</Tile>
     </div>
     <Tile id="modelo-ecuacion" title="Ecuación del modelo" subtitle="coeficientes originales · no estandarizados" exportRows={asRows(data?.coeficientes ?? [])} empty={data?.coeficientes.length === 0} {...state}>{data ? <div className="equation"><span>ŷ = {number(data.modelo.intercepto, 4)}</span>{data.coeficientes.map((item) => <span key={item.variable}>{formatSigned(item.coeficiente_original)} · {variableSymbol(item.variable)}</span>)}</div> : null}</Tile>
+    <Tile id="modelo-evidencia-segmento" title="Evidencia exploratoria del segmento 18–25" subtitle={`encuesta sintética · n = ${number(segment?.n)} · sin inferencia causal`} exportRows={segment ? [{ ...segment }] : []} loading={evidenceQuery.isLoading} error={evidenceQuery.error} empty={!segment?.n} onRetry={evidenceQuery.refetch} onRefresh={evidenceQuery.refetch}>
+      {segment ? <div className="descriptive-grid descriptive-grid--evidence"><Descriptive label="Visita semanal" mean={segment.visita_media} sd={segment.visita_de} /><Descriptive label="Aprovechamiento" mean={segment.aprovechamiento_media} sd={segment.aprovechamiento_de} /><Descriptive label="Atractivo" mean={segment.atractivo_media} sd={segment.atractivo_de} /><Descriptive label="Satisfacción" mean={segment.satisfaccion_media} sd={segment.satisfaccion_de} /><PercentStat label="Identifica promociones" value={segment.identifica_porcentaje} /><PercentStat label="Percibe ahorro" value={segment.ahorro_porcentaje} /><PercentStat label="Prefiere 2x1" value={segment.prefiere_2x1_porcentaje} highlight /></div> : null}
+    </Tile>
   </div>;
 }
 
@@ -159,25 +169,22 @@ export function PowerBiPage() {
       if (url.protocol === "https:" && url.hostname === "app.powerbi.com") validUrl = url.toString(); else invalid = true;
     } catch { invalid = true; }
   }
-  return <Tile id="power-bi" title="Tablero Power BI" subtitle="contenedor 16:9 · configuración por entorno" exportRows={[]}>
+  return <Tile id="power-bi" title="Tablero Power BI" subtitle="contenedor 16:9 · configuración por entorno" exportRows={[]} badge={validUrl ? <span className="status-badge status-badge--success">Configurado</span> : undefined}>
     {validUrl ? <div className="powerbi-frame"><iframe title="Dashboard Power BI Tambo" src={validUrl} allowFullScreen /></div> : <div className={`powerbi-placeholder ${invalid ? "powerbi-placeholder--error" : ""}`}><div className="powerbi-icon"><BarChart3 size={32} /></div><strong>{invalid ? "La URL configurada no es válida" : "Aún no hay un tablero conectado"}</strong><p>{invalid ? "VITE_POWER_BI_EMBED_URL debe usar HTTPS y pertenecer a app.powerbi.com." : "Publica el informe en Power BI y configura su enlace seguro en VITE_POWER_BI_EMBED_URL. El contenedor conservará la proporción 16:9."}</p><code>VITE_POWER_BI_EMBED_URL=https://app.powerbi.com/view?r=…</code></div>}
   </Tile>;
 }
 
 export function ModelPage() {
-  return <DocumentPage eyebrow="Modelo dimensional" title="DataMart en copo de nieve" lead="El hecho de ventas concentra las medidas comerciales y se conecta con dimensiones normalizadas para producto, tienda, promoción, cliente y tiempo.">
-    <div className="snowflake" aria-label="Diagrama del modelo dimensional">
-      <div className="snowflake-branch snowflake-branch--left">
-        <SchemaNode icon={<Layers3 />} title="Dim_Producto" detail="producto · precio · marca" tone="teal" />
-        <div className="schema-children"><SchemaNode title="Dim_Subcategoria" detail="subcategoría" /><SchemaNode title="Dim_Categoria" detail="categoría" /><SchemaNode title="Dim_Marca" detail="marca" /></div>
-      </div>
-      <div className="snowflake-center"><SchemaNode icon={<Database />} title="Hecho_Ventas" detail="cantidad · venta · costo · descuento · margen" tone="amber" featured /></div>
-      <div className="snowflake-branch snowflake-branch--right">
-        <SchemaNode icon={<Layers3 />} title="Dim_Promocion" detail="promoción · vigencia" tone="coral" />
-        <div className="schema-children"><SchemaNode title="Dim_TipoPromocion" detail="formato" /><SchemaNode title="Dim_Campania" detail="campaña" /></div>
-      </div>
-      <div className="snowflake-bottom"><SchemaNode title="Dim_Tienda" detail="distrito → ciudad" /><SchemaNode title="Dim_Cliente" detail="tipo de cliente" /><SchemaNode title="Dim_Tiempo" detail="fecha · mes · trimestre" /></div>
+  return <DocumentPage eyebrow="Modelo dimensional · 14 tablas comerciales" title="DataMart en copo de nieve" lead="El hecho de ventas concentra las medidas comerciales y se conecta con trece dimensiones normalizadas. La encuesta y los resultados de validación forman una extensión analítica separada.">
+    <div className="model-map" aria-label="Diagrama de las 14 tablas del modelo comercial">
+      <div className="model-map__fact"><SchemaNode icon={<Database />} title="Hecho_Ventas" detail="cantidad · venta · costo · descuento · margen" tone="amber" featured /></div>
+      <div className="model-map__branch"><span>Producto</span><SchemaNode icon={<Layers3 />} title="Dim_Producto" detail="producto · precio" tone="teal" /><SchemaNode title="Dim_Subcategoria" detail="subcategoría" /><SchemaNode title="Dim_Categoria" detail="categoría" /><SchemaNode title="Dim_Marca" detail="marca" /></div>
+      <div className="model-map__branch"><span>Ubicación</span><SchemaNode title="Dim_Tienda" detail="sede · código" /><SchemaNode title="Dim_Distrito" detail="distrito" /><SchemaNode title="Dim_Ciudad" detail="ciudad" /></div>
+      <div className="model-map__branch"><span>Promoción</span><SchemaNode icon={<Layers3 />} title="Dim_Promocion" detail="promoción · vigencia" tone="coral" /><SchemaNode title="Dim_TipoPromocion" detail="formato" /><SchemaNode title="Dim_Campania" detail="campaña" /></div>
+      <div className="model-map__branch"><span>Cliente</span><SchemaNode title="Dim_Cliente" detail="edad · género" /><SchemaNode title="Dim_TipoCliente" detail="segmento" /></div>
+      <div className="model-map__branch"><span>Tiempo</span><SchemaNode title="Dim_Tiempo" detail="fecha · mes · trimestre" /></div>
     </div>
+    <div className="analytic-extension"><div><span>Extensión analítica · 4 tablas</span><strong>Fuentes y resultados fuera del núcleo comercial</strong></div><div className="analytic-extension__nodes"><SchemaNode title="Encuesta_Clientes" detail="50 respuestas sintéticas" tone="teal" /><SchemaNode title="Modelo_Predictivo" detail="versión · métricas" tone="coral" /><SchemaNode title="Coeficiente_Modelo" detail="6 variables" /><SchemaNode title="Prediccion_Venta" detail="30 observaciones" /></div></div>
     <div className="document-grid document-grid--3"><InfoCard label="Granularidad" value="Una transacción" text="Cada fila representa una venta individual en la sede UC." /><InfoCard label="Integridad" value="100% referencial" text="Claves foráneas y restricciones preservan la consistencia." /><InfoCard label="Motor cloud" value="PostgreSQL" text="El mismo modelo académico, reproducido en Supabase." /></div>
   </DocumentPage>;
 }
@@ -193,33 +200,65 @@ export function ArchitecturePage() {
       <ArrowRight />
       <FlowStep number="04" icon={<BarChart3 />} title="Consumo BI" text="React, Supabase Data API y contenedor Power BI." />
     </div>
-    <div className="document-grid document-grid--2"><InfoCard label="Seguridad" value="RLS + mínimo privilegio" text="Los roles públicos solo pueden consultar vistas y ejecutar RPC aprobadas." /><InfoCard label="Despliegue" value="Vercel" text="Frontend estático, variables por entorno y navegación SPA." /></div>
+    <div className="document-grid document-grid--2"><InfoCard label="Seguridad" value="RPC de solo lectura" text="Las tablas y vistas internas no se exponen; anon y authenticated solo ejecutan funciones analíticas aprobadas." /><InfoCard label="Despliegue" value="Vercel" text="Frontend estático, variables por entorno, cabeceras de seguridad y navegación SPA." /></div>
   </DocumentPage>;
 }
 
 export function HefestoPage() {
+  const location = useLocation();
   const phases = [
     ["01", "Análisis de requerimientos", "Preguntas del negocio, indicadores y perspectivas."],
     ["02", "Análisis de los OLTP", "Identificación de fuentes, campos y correspondencias."],
     ["03", "Modelo lógico del DataMart", "Hecho, dimensiones, jerarquías y granularidad."],
     ["04", "Procesos ETL", "Extracción, limpieza, carga y validación de cifras."],
+    ["05", "Visualización y validación", "Dashboard React, integración Power BI, filtros, pruebas y comunicación de hallazgos."],
   ];
   return <DocumentPage eyebrow="Metodología" title="Hefesto aplicado al caso Tambo" lead="Las decisiones del tablero se trazan desde las preguntas de negocio hasta la carga reproducible del DataMart.">
     <div className="timeline">{phases.map(([step, title, text]) => <div className="timeline-item" key={step}><span>{step}</span><div><strong>{title}</strong><p>{text}</p></div><BadgeCheck /></div>)}</div>
     <div className="document-callout"><Sparkles /><div><strong>Resultado verificable</strong><p>El script SQL detiene la ejecución si las 100 ventas, 50 encuestas o métricas de defensa no coinciden exactamente.</p></div></div>
+    <Link className="document-cta" to={{ pathname: "/power-bi", search: location.search }}><BarChart3 size={18} /><span><strong>Ver la fase de visualización</strong><small>Abrir Dashboard Power BI conservando los filtros</small></span><ArrowRight size={18} /></Link>
   </DocumentPage>;
 }
 
 export function GovernancePage() {
   const controls = [
     ["Calidad", "Restricciones, limpieza y pruebas automáticas para montos, fechas y relaciones."],
-    ["Seguridad", "RLS activa, lectura pública controlada y ninguna clave privilegiada en el navegador."],
+    ["Seguridad", "RLS activa, tablas internas sin lectura pública y RPC analíticas con permisos explícitos."],
     ["Trazabilidad", "SQL, modelo predictivo y configuración de despliegue versionados en Git."],
     ["Privacidad", "Clientes sintéticos y anónimos, sin nombres, documentos, correos ni teléfonos."],
   ];
   return <DocumentPage eyebrow="Gobierno de datos" title="Controles para un dato confiable" lead="El proyecto combina integridad académica, acceso de mínimo privilegio y evidencia reproducible para cada indicador.">
     <div className="governance-grid">{controls.map(([title, text], index) => <div className="governance-card" key={title}><span>0{index + 1}</span><ShieldCheck /><strong>{title}</strong><p>{text}</p></div>)}</div>
-    <div className="document-grid document-grid--3"><InfoCard label="Ventas" value="100" text="Transacciones determinísticas." /><InfoCard label="Encuestas" value="50" text="Respuestas sintéticas anonimizadas." /><InfoCard label="Acceso público" value="Solo SELECT" text="Escrituras revocadas para anon y authenticated." /></div>
+    <div className="document-grid document-grid--3"><InfoCard label="Ventas" value="100" text="Transacciones determinísticas." /><InfoCard label="Encuestas" value="50" text="Respuestas sintéticas anonimizadas." /><InfoCard label="Acceso público" value="Solo RPC aprobadas" text="Sin SELECT directo sobre tablas o vistas internas." /></div>
+    <div className="legal-note"><ShieldCheck size={18} /><p><strong>Marco normativo de referencia:</strong> Ley N.° 29733 – Ley de Protección de Datos Personales y su Reglamento, D.S. N.° 003-2013-JUS. El proyecto utiliza exclusivamente datos sintéticos y anónimos.</p></div>
+  </DocumentPage>;
+}
+
+export function DataDictionaryPage() {
+  const [query, setQuery] = useState("");
+  const [group, setGroup] = useState("Todos");
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return dataDictionary.filter((table) => {
+      const groupMatches = group === "Todos" || table.group === group;
+      const termMatches = !term || table.name.includes(term) || table.purpose.toLowerCase().includes(term) || table.columns.some((column) => `${column.name} ${column.description}`.toLowerCase().includes(term));
+      return groupMatches && termMatches;
+    });
+  }, [group, query]);
+
+  return <DocumentPage eyebrow="Metadatos · 18 tablas físicas" title="Diccionario de datos" lead="Definiciones trazables al script SQL del proyecto. Distingue el núcleo comercial, la encuesta independiente y las tablas de validación técnica.">
+    <div className="dictionary-toolbar">
+      <label><Search size={16} /><span className="sr-only">Buscar en el diccionario</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar tabla, columna o definición" /></label>
+      <label><span>Grupo</span><select value={group} onChange={(event) => setGroup(event.target.value)}><option>Todos</option><option>Modelo comercial</option><option>Encuesta</option><option>Modelo analítico</option></select></label>
+      <strong>{filtered.length} de {dataDictionary.length} tablas</strong>
+    </div>
+    <div className="dictionary-list">
+      {filtered.map((table) => <section className="dictionary-table" key={table.name}>
+        <header><div><span>{table.group}</span><h3>{table.name}</h3><p>{table.purpose}</p></div><b>{table.columns.length} columnas</b></header>
+        <div className="table-scroll"><table className="data-table"><thead><tr><th>Columna</th><th>Tipo</th><th>Clave</th><th>Nulable</th><th>Definición</th></tr></thead><tbody>{table.columns.map((column) => <tr key={column.name}><td><code>{column.name}</code></td><td>{column.type}</td><td>{column.key ?? "—"}</td><td>{column.nullable ? "Sí" : "No"}</td><td>{column.description}</td></tr>)}</tbody></table></div>
+      </section>)}
+      {!filtered.length ? <div className="state-message"><strong>Sin coincidencias</strong><span>Prueba otro término o selecciona todos los grupos.</span></div> : null}
+    </div>
   </DocumentPage>;
 }
 

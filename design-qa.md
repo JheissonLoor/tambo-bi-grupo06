@@ -38,7 +38,7 @@ No se necesitó un recorte focal adicional: a escala 1:1, la captura completa pe
 
 ## Pruebas de interacción
 
-- Las 11 rutas cargan sin estado de error.
+- Las 12 rutas, incluido el diccionario de datos, cargan sin estado de error.
 - Categoría Bebidas cambió los KPI y persistió como `?categoria=1` entre Resumen y Ventas.
 - Limpiar filtros restauró S/ 675.95, ticket S/ 6.76, 100 transacciones y margen S/ 110.15.
 - Menú móvil abre/cierra a 390 px; la grilla KPI usa dos columnas y no desborda.
@@ -47,6 +47,6 @@ No se necesitó un recorte focal adicional: a escala 1:1, la captura completa pe
 
 ## Hallazgos finales
 
-No quedan hallazgos P0, P1 o P2. Como diferencia P3 aceptada, el artifact se captura dentro del encabezado de Claude y sus valores mock no coinciden con los datos académicos; la aplicación conserva la intención visual y muestra exclusivamente cifras SQL reales.
+No quedan hallazgos P0 o P1 conocidos. La validación técnica está rotulada como sintética y la evidencia de encuesta se presenta por separado para evitar sobreafirmaciones. Como diferencia P3 aceptada, el artifact se captura dentro del encabezado de Claude y sus valores mock no coinciden con los datos académicos; la aplicación conserva la intención visual y muestra exclusivamente cifras SQL verificables.
 
 final result: passed

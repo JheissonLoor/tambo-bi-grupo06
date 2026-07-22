@@ -1,6 +1,6 @@
 # Tambo BI - DataMart de promociones comerciales
 
-Dashboard académico de Inteligencia de Negocios para evaluar promociones comerciales en **Tambo - Sede UC**. El proyecto implementa un DataMart en copo de nieve sobre PostgreSQL/Supabase, una capa analítica SQL, un modelo predictivo reproducible y una aplicación React desplegable en Vercel.
+Dashboard académico de Inteligencia de Negocios para evaluar promociones comerciales en **Tambo - Sede UC**. El proyecto implementa un DataMart en copo de nieve sobre PostgreSQL/Supabase, una capa analítica SQL, una validación técnica reproducible de regresión y una aplicación React desplegable en Vercel.
 
 > Universidad Tecnológica del Perú · Inteligencia de Negocios · Grupo 06 · 2026
 
@@ -33,8 +33,8 @@ La migración contiene aserciones que abortan si estas cifras, los descriptivos 
 flowchart LR
   A[Datos sintéticos reproducibles] --> B[ETL y limpieza SQL]
   B --> C[(DataMart PostgreSQL)]
-  C --> D[Vistas analíticas]
-  D --> E[RPC security invoker]
+  C --> D[Vistas internas security invoker]
+  D --> E[RPC de solo lectura security definer]
   E --> F[Supabase Data API]
   F --> G[React + React Query]
   G --> H[Vercel]
@@ -53,7 +53,7 @@ El modelo dimensional normaliza las jerarquías:
 
 - React 19, TypeScript, Vite y React Router.
 - TanStack Query para caché, cancelación, reintentos y estados por tile.
-- Supabase/PostgreSQL con RLS, vistas `security_invoker` y RPC analíticas.
+- Supabase/PostgreSQL con RLS, vistas internas `security_invoker` y una superficie pública limitada a RPC de solo lectura con `search_path` vacío.
 - CSS propio, Lucide y gráficos SVG responsivos.
 - Vercel para hosting y navegación SPA.
 - Python estándar para reproducir la regresión lineal múltiple 70/30, semilla 42.
@@ -102,19 +102,24 @@ También se puede copiar y ejecutar `supabase/001_datamart_tambo.sql` completo d
 Archivos principales:
 
 - `supabase/001_datamart_tambo.sql`: tablas, restricciones, carga determinística, vistas, RPC, modelo, RLS, permisos, índices y aserciones.
+- `supabase/migrations/20260722165353_datamart_tambo.sql`: migración versionada que se publica con `supabase db push`.
 - `supabase/verify_datamart.sql`: consultas de aceptación e integridad.
 - `scripts/train_model.py`: entrenamiento reproducible y exportación JSON/SQL.
 
-## Modelo predictivo
+## Validación técnica del pipeline
 
-El modelo usa regresión lineal múltiple sobre las 100 ventas con una división determinística 70/30 y semilla 42. Incluye porcentaje de descuento, tipo de promoción, categoría, fin de semana, franja horaria y edad del cliente.
+La prueba usa regresión lineal múltiple sobre 100 ventas sintéticas con una división determinística 70/30 y semilla 42. Incluye porcentaje de descuento, tipo de promoción, categoría, fin de semana, franja horaria y edad del cliente. Sus métricas validan la reproducibilidad del flujo técnico; no demuestran capacidad predictiva sobre ventas reales ni justifican inferencias causales.
 
 ```bash
 npm run model:train
 npm run model:sql
 ```
 
-Supabase conserva la versión, intercepto, coeficientes originales/estandarizados y las 30 predicciones de prueba. La página Predictivo recalcula R², MAE y RMSE sobre el subconjunto filtrado.
+Supabase conserva la versión, intercepto, coeficientes originales/estandarizados y las 30 observaciones de prueba. La página Predictivo recalcula R², MAE y RMSE sobre el subconjunto filtrado y presenta por separado la evidencia exploratoria de la encuesta.
+
+## Diccionario de datos
+
+La ruta `/diccionario` documenta las 18 tablas físicas, sus columnas, tipos, claves, nulabilidad y propósito. Separa las 14 tablas del modelo comercial, la encuesta independiente y las tres tablas de resultados analíticos.
 
 ## Filtros y acciones
 
@@ -139,7 +144,6 @@ Si la variable no existe, la aplicación muestra un placeholder informativo. Si 
 
 ```bash
 npm test
-npm run build
 npm run preview
 ```
 
@@ -148,7 +152,7 @@ La aceptación realizada incluye:
 - cifras SQL exactas, cero FK huérfanas y 2x1 con margen negativo;
 - lectura y RPC como `anon`, con escrituras rechazadas;
 - Supabase Security Advisor sin hallazgos;
-- 11 rutas sin errores, filtros sincronizados y limpieza del periodo;
+- 12 rutas sin errores, filtros sincronizados y limpieza del periodo;
 - vistas a 1440 x 940, 1024 x 940 y 390 x 844 px;
 - consola sin errores originados por la aplicación.
 
@@ -176,7 +180,7 @@ src/
   components/       Shell, tiles y gráficos
   context/          Estado global de filtros en URL
   data/             Contrato de acceso a Supabase
-  pages/            11 páginas del dashboard
+  pages/            12 páginas del dashboard
   types/            Tipos de RPC y filtros
 supabase/            DataMart reproducible y verificaciones
 scripts/             Modelo predictivo y preparación de build

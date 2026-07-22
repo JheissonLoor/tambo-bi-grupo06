@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Download, Expand, MoreVertical, RefreshCw, RotateCcw, TriangleAlert } from "lucide-react";
 import { downloadCsv } from "../utils/format";
 
@@ -34,6 +34,16 @@ export function Tile({
   const [menuOpen, setMenuOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const tileRef = useRef<HTMLElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
 
   const inform = (message: string) => {
     setActionMessage(message);
@@ -70,7 +80,7 @@ export function Tile({
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
         {badge}
-        <button className="icon-button" type="button" aria-label={`Acciones de ${title}`} onClick={() => setMenuOpen((open) => !open)}>
+        <button className="icon-button" type="button" aria-label={`Acciones de ${title}`} aria-expanded={menuOpen} aria-controls={menuId} aria-haspopup="menu" onClick={() => setMenuOpen((open) => !open)}>
           <MoreVertical size={17} />
         </button>
       </header>
@@ -78,10 +88,10 @@ export function Tile({
       {menuOpen ? (
         <>
           <button className="menu-scrim" type="button" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} />
-          <div className="tile-menu">
-            <button type="button" onClick={exportData} disabled={!exportRows.length}><Download size={15} />Exportar datos</button>
-            <button type="button" onClick={fullscreen}><Expand size={15} />Pantalla completa</button>
-            <button type="button" onClick={refresh} disabled={!onRefresh}><RefreshCw size={15} />Actualizar</button>
+          <div id={menuId} className="tile-menu" role="menu" aria-label={`Acciones de ${title}`}>
+            <button role="menuitem" type="button" onClick={exportData} disabled={!exportRows.length}><Download size={15} />Exportar datos</button>
+            <button role="menuitem" type="button" onClick={fullscreen}><Expand size={15} />Pantalla completa</button>
+            <button role="menuitem" type="button" onClick={refresh} disabled={!onRefresh}><RefreshCw size={15} />Actualizar</button>
           </div>
         </>
       ) : null}
