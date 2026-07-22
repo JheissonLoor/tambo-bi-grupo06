@@ -115,7 +115,7 @@ export function DashboardShell({ page, children }: { page: string; children: Rea
           <GlobalFilters />
           {fetching ? <span className="sync-indicator"><i />Actualizando</span> : null}
         </header>
-        <main className="canvas"><div className="canvas__inner">{children}</div></main>
+        <main className="canvas"><div className="canvas__inner"><div className="route-stage" key={location.pathname}>{children}</div></div></main>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Database, KeyRound, Link2 } from "lucide-react";
 import { dataDictionary } from "../data/dataDictionary";
+import { useAnimatedProgress } from "../hooks/useDashboardMotion";
 
 type DiagramNode = {
   id: string;
@@ -49,6 +50,7 @@ const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
 export function SnowflakeDiagram() {
   const [activeId, setActiveId] = useState("");
+  const progress = useAnimatedProgress("snowflake-diagram", 1100);
   const activeNode = nodeMap.get(activeId) ?? nodes[0];
   const table = dataDictionary.find((item) => item.name === activeNode.id);
   const related = new Set<string>();
@@ -73,15 +75,16 @@ export function SnowflakeDiagram() {
             <linearGradient id="fact-fill" x1="0" x2="1" y1="0" y2="1"><stop stopColor="#F5A623" /><stop offset="1" stopColor="#F7A51E" /></linearGradient>
           </defs>
           <g className="snowflake-edges">
-            {edges.map(([sourceId, targetId]) => {
+            {edges.map(([sourceId, targetId], index) => {
               const source = nodeMap.get(sourceId)!;
               const target = nodeMap.get(targetId)!;
               const active = Boolean(activeId) && (activeId === sourceId || activeId === targetId);
-              return <path key={`${sourceId}-${targetId}`} className={active ? "snowflake-edge snowflake-edge--active" : "snowflake-edge"} d={edgePath(source, target)} />;
+              const edgeProgress = Math.min(1, Math.max(0, progress * 1.35 - index * .035));
+              return <path key={`${sourceId}-${targetId}`} pathLength={1} className={active ? "snowflake-edge snowflake-edge--active" : "snowflake-edge"} style={{ strokeDasharray: 1, strokeDashoffset: 1 - edgeProgress }} d={edgePath(source, target)} />;
             })}
           </g>
           <g className="snowflake-nodes">
-            {nodes.map((node) => {
+            {nodes.map((node, index) => {
               const isActive = activeId === node.id;
               const isRelated = related.has(node.id);
               const tableData = dataDictionary.find((item) => item.name === node.id);
@@ -89,6 +92,7 @@ export function SnowflakeDiagram() {
                 <g
                   key={node.id}
                   className={`snowflake-node snowflake-node--${node.kind} ${isActive ? "snowflake-node--active" : ""} ${isRelated ? "snowflake-node--related" : ""}`}
+                  style={{ "--node-delay": `${index * 38}ms` } as CSSProperties}
                   role="button"
                   tabIndex={0}
                   aria-label={`${kindLabel(node.kind)} ${node.label}. ${tableData?.columns.length ?? 0} columnas`}

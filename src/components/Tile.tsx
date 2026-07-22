@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Download, Expand, MoreVertical, RefreshCw, RotateCcw, TriangleAlert } from "lucide-react";
+import { useAnimatedNumber } from "../hooks/useDashboardMotion";
 import { downloadCsv } from "../utils/format";
 
 type TileProps = {
@@ -132,12 +133,16 @@ type KpiCardProps = Omit<TileProps, "children" | "title"> & {
   value: string;
   detail: string;
   tone?: "amber" | "coral" | "teal" | "violet";
+  animatedValue?: number | null;
+  valueFormatter?: (value: number) => string;
 };
 
-export function KpiCard({ label, value, detail, tone = "amber", ...tileProps }: KpiCardProps) {
+export function KpiCard({ label, value, detail, tone = "amber", animatedValue, valueFormatter, ...tileProps }: KpiCardProps) {
+  const animated = useAnimatedNumber(animatedValue);
+  const displayedValue = animated != null && valueFormatter ? valueFormatter(animated) : value;
   return (
     <Tile {...tileProps} title={label} badge={tileProps.badge ?? <span className="neutral-badge">SEDE UC</span>} hideActions className={`kpi-card kpi-card--${tone} ${tileProps.className ?? ""}`}>
-      <div className="kpi-card__value">{value}</div>
+      <div className="kpi-card__value" aria-label={value}><span aria-hidden="true">{displayedValue}</span></div>
       <div className="kpi-card__detail">{detail}</div>
     </Tile>
   );

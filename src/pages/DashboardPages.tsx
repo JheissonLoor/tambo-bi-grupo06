@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
 import { AlertTriangle, ArrowRight, BadgeCheck, BarChart3, Database, Layers3, Search, ShieldCheck, Sparkles, Workflow } from "lucide-react";
-import { BarChart, DivergingBars, DonutChart, LineAreaChart, ScatterPlot } from "../components/Charts";
+import { BarChart, DivergingBars, DonutChart, HorizontalBarChart, LineAreaChart, ScatterPlot } from "../components/Charts";
 import { KpiCard, Tile } from "../components/Tile";
 import { SnowflakeDiagram } from "../components/SnowflakeDiagram";
 import { filtersKey } from "../components/DashboardShell";
@@ -35,10 +35,10 @@ export function SummaryPage() {
   return (
     <div className="page-stack">
       <div className="kpi-grid">
-        <KpiCard id="kpi-ventas-promocion" label="Ventas por promoción" value={money(data?.kpis.ventasPromocion)} detail={`${number(data?.kpis.transacciones)} transacciones filtradas`} tone="amber" exportRows={data ? [{ ventas_promocion: data.kpis.ventasPromocion }] : []} {...state} />
-        <KpiCard id="kpi-margen" label="Margen de ganancia" value={`${number(data?.kpis.margenPorcentaje, 1)}%`} detail={`${money(data?.kpis.margenImporte)} acumulado`} tone="coral" exportRows={data ? [{ margen_porcentaje: data.kpis.margenPorcentaje, margen_importe: data.kpis.margenImporte }] : []} {...state} />
-        <KpiCard id="kpi-incremento" label="Incremento de ventas" value={`${number(data?.kpis.incrementoPorcentaje, 1)}%`} detail="Con promoción vs. sin promoción" tone="teal" exportRows={data ? [{ incremento_porcentaje: data.kpis.incrementoPorcentaje }] : []} {...state} />
-        <KpiCard id="kpi-frecuencia" label="Frecuencia declarada de uso" value={`${number(data?.kpis.frecuenciaUso, 2)} / 3`} detail={`Promedio de ${number(data?.kpis.respuestas)} respuestas · escala 0–3`} tone="violet" exportRows={data ? [{ frecuencia_uso: data.kpis.frecuenciaUso, respuestas: data.kpis.respuestas }] : []} {...state} />
+        <KpiCard id="kpi-ventas-promocion" label="Ventas por promoción" value={money(data?.kpis.ventasPromocion)} animatedValue={data?.kpis.ventasPromocion} valueFormatter={(value) => money(value)} detail={`${number(data?.kpis.transacciones)} transacciones filtradas`} tone="amber" exportRows={data ? [{ ventas_promocion: data.kpis.ventasPromocion }] : []} {...state} />
+        <KpiCard id="kpi-margen" label="Margen de ganancia" value={`${number(data?.kpis.margenPorcentaje, 1)}%`} animatedValue={data?.kpis.margenPorcentaje} valueFormatter={(value) => `${number(value, 1)}%`} detail={`${money(data?.kpis.margenImporte)} acumulado`} tone="coral" exportRows={data ? [{ margen_porcentaje: data.kpis.margenPorcentaje, margen_importe: data.kpis.margenImporte }] : []} {...state} />
+        <KpiCard id="kpi-incremento" label="Incremento de ventas" value={`${number(data?.kpis.incrementoPorcentaje, 1)}%`} animatedValue={data?.kpis.incrementoPorcentaje} valueFormatter={(value) => `${number(value, 1)}%`} detail="Con promoción vs. sin promoción" tone="teal" exportRows={data ? [{ incremento_porcentaje: data.kpis.incrementoPorcentaje }] : []} {...state} />
+        <KpiCard id="kpi-frecuencia" label="Frecuencia declarada de uso" value={`${number(data?.kpis.frecuenciaUso, 2)} / 3`} animatedValue={data?.kpis.frecuenciaUso} valueFormatter={(value) => `${number(value, 2)} / 3`} detail={`Promedio de ${number(data?.kpis.respuestas)} respuestas · escala 0–3`} tone="violet" exportRows={data ? [{ frecuencia_uso: data.kpis.frecuenciaUso, respuestas: data.kpis.respuestas }] : []} {...state} />
       </div>
       <div className="analysis-grid analysis-grid--summary-top">
         <Tile id="resumen-tendencia" title="Tendencia de ventas" subtitle="agregación diaria · 01–30 junio 2026" className="tile--tall" exportRows={asRows(data?.tendencia ?? [])} empty={data?.tendencia.length === 0} {...state}>
@@ -75,17 +75,17 @@ export function SalesPage() {
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
   return <div className="page-stack">
     <div className="kpi-grid">
-      <KpiCard id="ventas-total" label="Ventas totales" value={money(data?.kpis.ventas)} detail="Importe del periodo filtrado" tone="amber" exportRows={data ? [{ ventas: data.kpis.ventas }] : []} {...state} />
-      <KpiCard id="ventas-ticket" label="Ticket promedio" value={money(data?.kpis.ticket)} detail="AVG(total_venta)" tone="coral" exportRows={data ? [{ ticket: data.kpis.ticket }] : []} {...state} />
-      <KpiCard id="ventas-transacciones" label="Transacciones" value={number(data?.kpis.transacciones)} detail="COUNT(id_venta)" tone="teal" exportRows={data ? [{ transacciones: data.kpis.transacciones }] : []} {...state} />
-      <KpiCard id="ventas-margen" label="Margen acumulado" value={money(data?.kpis.margen)} detail="Ventas menos costos" tone="violet" exportRows={data ? [{ margen: data.kpis.margen }] : []} {...state} />
+      <KpiCard id="ventas-total" label="Ventas totales" value={money(data?.kpis.ventas)} animatedValue={data?.kpis.ventas} valueFormatter={(value) => money(value)} detail="Importe del periodo filtrado" tone="amber" exportRows={data ? [{ ventas: data.kpis.ventas }] : []} {...state} />
+      <KpiCard id="ventas-ticket" label="Ticket promedio" value={money(data?.kpis.ticket)} animatedValue={data?.kpis.ticket} valueFormatter={(value) => money(value)} detail="AVG(total_venta)" tone="coral" exportRows={data ? [{ ticket: data.kpis.ticket }] : []} {...state} />
+      <KpiCard id="ventas-transacciones" label="Transacciones" value={number(data?.kpis.transacciones)} animatedValue={data?.kpis.transacciones} valueFormatter={(value) => number(value)} detail="COUNT(id_venta)" tone="teal" exportRows={data ? [{ transacciones: data.kpis.transacciones }] : []} {...state} />
+      <KpiCard id="ventas-margen" label="Margen acumulado" value={money(data?.kpis.margen)} animatedValue={data?.kpis.margen} valueFormatter={(value) => money(value)} detail="Ventas menos costos" tone="violet" exportRows={data ? [{ margen: data.kpis.margen }] : []} {...state} />
     </div>
     <div className="analysis-grid analysis-grid--2">
       <Tile id="ventas-tendencia" title="Ventas por día" subtitle="agregación diaria" exportRows={asRows(data?.tendencia ?? [])} empty={data?.tendencia.length === 0} {...state}>{data ? <LineAreaChart data={data.tendencia.map((point) => ({ label: point.fecha, value: point.ventas }))} /> : null}</Tile>
       <Tile id="ventas-horario" title="Ventas por periodo / horario" subtitle="23% mañana · 35% tarde · 42% noche" exportRows={asRows(data?.horarios ?? [])} empty={data?.horarios.length === 0} {...state}>{data ? <BarChart moneyValues={false} data={data.horarios.map((item, index) => ({ label: labelTime(item.label), value: item.porcentaje, color: tones[index] }))} /> : null}</Tile>
     </div>
     <div className="analysis-grid analysis-grid--2-1">
-      <Tile id="ventas-productos" title="Productos con mayor venta" subtitle="producto · categoría · unidades" exportRows={asRows(data?.productos ?? [])} empty={data?.productos.length === 0} {...state}>{data ? <DataTable columns={[{ key: "producto", label: "Producto" }, { key: "categoria", label: "Categoría" }, { key: "unidades", label: "Unid.", format: (value) => number(Number(value)) }, { key: "ventas", label: "Ventas", format: (value) => money(Number(value)) }]} rows={asRows(data.productos)} /> : null}</Tile>
+      <Tile id="ventas-productos" title="Ventas por producto" subtitle="top 8 productos · soles" exportRows={asRows(data?.productos ?? [])} empty={data?.productos.length === 0} {...state}>{data ? <HorizontalBarChart data={data.productos.slice(0, 8).map((item, index) => ({ label: item.producto, value: item.ventas, color: index === 0 ? tones[0] : index < 3 ? tones[4] : "#4c5a6b" }))} /> : null}</Tile>
       <Tile id="ventas-categorias" title="Margen por categoría" subtitle="ventas y rentabilidad" exportRows={asRows(data?.categorias ?? [])} empty={data?.categorias.length === 0} {...state}>{data ? <DivergingBars data={data.categorias.map((item) => ({ label: item.categoria, value: item.margen }))} /> : null}</Tile>
     </div>
   </div>;
@@ -98,9 +98,9 @@ export function PromotionsPage() {
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
   return <div className="page-stack">
     <div className="kpi-grid kpi-grid--3">
-      <KpiCard id="promo-ventas" label="Ventas con promoción" value={money(data?.kpis.ventas)} detail="SUM(total_venta)" exportRows={data ? [{ ventas: data.kpis.ventas }] : []} {...state} />
-      <KpiCard id="promo-transacciones" label="Usos de promoción" value={number(data?.kpis.transacciones)} detail="Transacciones promocionadas" tone="teal" exportRows={data ? [{ transacciones: data.kpis.transacciones }] : []} {...state} />
-      <KpiCard id="promo-margen" label="Margen promocional" value={money(data?.kpis.margen)} detail="Incluye pérdidas legítimas" tone="coral" exportRows={data ? [{ margen: data.kpis.margen }] : []} {...state} />
+      <KpiCard id="promo-ventas" label="Ventas con promoción" value={money(data?.kpis.ventas)} animatedValue={data?.kpis.ventas} valueFormatter={(value) => money(value)} detail="SUM(total_venta)" exportRows={data ? [{ ventas: data.kpis.ventas }] : []} {...state} />
+      <KpiCard id="promo-transacciones" label="Usos de promoción" value={number(data?.kpis.transacciones)} animatedValue={data?.kpis.transacciones} valueFormatter={(value) => number(value)} detail="Transacciones promocionadas" tone="teal" exportRows={data ? [{ transacciones: data.kpis.transacciones }] : []} {...state} />
+      <KpiCard id="promo-margen" label="Margen promocional" value={money(data?.kpis.margen)} animatedValue={data?.kpis.margen} valueFormatter={(value) => money(value)} detail="Incluye pérdidas legítimas" tone="coral" exportRows={data ? [{ margen: data.kpis.margen }] : []} {...state} />
     </div>
     <div className="analysis-grid analysis-grid--2">
       <Tile id="promo-ventas-formato" title="Ventas por formato promocional" subtitle="SUM(total_venta)" exportRows={asRows(data?.formatos ?? [])} empty={data?.formatos.length === 0} {...state}>{data ? <BarChart data={data.formatos.map((item, index) => ({ label: item.formato, value: item.ventas, color: tones[index] }))} /> : null}</Tile>
@@ -119,12 +119,12 @@ export function CustomersPage() {
   const dominantAge = data ? [...data.edades].sort((a, b) => b.porcentaje - a.porcentaje)[0] : undefined;
   return <div className="page-stack">
     <div className="kpi-grid kpi-grid--3">
-      <KpiCard id="clientes-respuestas" label="Respuestas" value={number(data?.kpis.respuestas)} detail="Encuestas válidas" exportRows={data ? [{ respuestas: data.kpis.respuestas }] : []} {...state} />
+      <KpiCard id="clientes-respuestas" label="Respuestas" value={number(data?.kpis.respuestas)} animatedValue={data?.kpis.respuestas} valueFormatter={(value) => number(value)} detail="Encuestas válidas" exportRows={data ? [{ respuestas: data.kpis.respuestas }] : []} {...state} />
       <KpiCard id="clientes-rango" label="Segmento de edad dominante" value={dominantAge ? `${dominantAge.label} años` : "—"} detail={dominantAge ? `${number(dominantAge.porcentaje, 1)}% de las respuestas filtradas` : "Sin respuestas"} tone="teal" exportRows={data ? asRows(data.edades) : []} {...state} />
-      <KpiCard id="clientes-frecuencia" label="Frecuencia declarada de uso" value={`${number(data?.kpis.frecuencia_media, 2)} / 3`} detail="Promedio de encuesta · escala 0–3" tone="violet" exportRows={data ? [{ frecuencia_media: data.kpis.frecuencia_media }] : []} {...state} />
+      <KpiCard id="clientes-frecuencia" label="Frecuencia declarada de uso" value={`${number(data?.kpis.frecuencia_media, 2)} / 3`} animatedValue={data?.kpis.frecuencia_media} valueFormatter={(value) => `${number(value, 2)} / 3`} detail="Promedio de encuesta · escala 0–3" tone="violet" exportRows={data ? [{ frecuencia_media: data.kpis.frecuencia_media }] : []} {...state} />
     </div>
     <div className="analysis-grid analysis-grid--3">
-      <Tile id="clientes-edades" title="Rangos de edad" subtitle="distribución de respuestas" exportRows={asRows(data?.edades ?? [])} empty={data?.edades.length === 0} {...state}>{data ? <DonutChart data={data.edades.map((item, index) => ({ label: item.label, value: item.respuestas, color: tones[index] }))} centerLabel="respuestas" /> : null}</Tile>
+      <Tile id="clientes-edades" title="Distribución por edad" subtitle="% de la muestra" exportRows={asRows(data?.edades ?? [])} empty={data?.edades.length === 0} {...state}>{data ? <HorizontalBarChart moneyValues={false} data={data.edades.map((item, index) => ({ label: `${item.label} años`, value: item.porcentaje, color: index === 0 ? tones[0] : "#4c5a6b" }))} /> : null}</Tile>
       <Tile id="clientes-formatos" title="Formato preferido" subtitle="declaración de encuesta" exportRows={asRows(data?.formatos ?? [])} empty={data?.formatos.length === 0} {...state}>{data ? <BarChart height={260} moneyValues={false} data={data.formatos.map((item, index) => ({ label: item.label, value: item.porcentaje, color: tones[index] }))} /> : null}</Tile>
       <Tile id="clientes-horarios" title="Horario preferido" subtitle="encuesta" exportRows={asRows(data?.horarios ?? [])} empty={data?.horarios.length === 0} {...state}>{data ? <DonutChart data={data.horarios.map((item, index) => ({ label: labelTime(item.label), value: item.respuestas, color: tones[index] }))} centerLabel="respuestas" /> : null}</Tile>
     </div>
@@ -143,9 +143,9 @@ export function PredictivePage() {
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
   return <div className="page-stack">
     <div className="kpi-grid kpi-grid--3">
-      <KpiCard id="modelo-r2" label="R² filtrado" value={data?.metricas.r2 == null ? "Sin variación" : number(data.metricas.r2, 3)} detail={`${number(data?.metricas.n)} predicciones visibles`} exportRows={data ? [{ r2: data.metricas.r2, n: data.metricas.n }] : []} {...state} />
-      <KpiCard id="modelo-mae" label="MAE" value={data?.metricas.mae == null ? "—" : money(data.metricas.mae)} detail="Error absoluto medio" tone="teal" exportRows={data ? [{ mae: data.metricas.mae }] : []} {...state} />
-      <KpiCard id="modelo-rmse" label="RMSE" value={data?.metricas.rmse == null ? "—" : money(data.metricas.rmse)} detail="Raíz del error cuadrático" tone="violet" exportRows={data ? [{ rmse: data.metricas.rmse }] : []} {...state} />
+      <KpiCard id="modelo-r2" label="R² filtrado" value={data?.metricas.r2 == null ? "Sin variación" : number(data.metricas.r2, 3)} animatedValue={data?.metricas.r2} valueFormatter={(value) => number(value, 3)} detail={`${number(data?.metricas.n)} predicciones visibles`} exportRows={data ? [{ r2: data.metricas.r2, n: data.metricas.n }] : []} {...state} />
+      <KpiCard id="modelo-mae" label="MAE" value={data?.metricas.mae == null ? "—" : money(data.metricas.mae)} animatedValue={data?.metricas.mae} valueFormatter={(value) => money(value)} detail="Error absoluto medio" tone="teal" exportRows={data ? [{ mae: data.metricas.mae }] : []} {...state} />
+      <KpiCard id="modelo-rmse" label="RMSE" value={data?.metricas.rmse == null ? "—" : money(data.metricas.rmse)} animatedValue={data?.metricas.rmse} valueFormatter={(value) => money(value)} detail="Raíz del error cuadrático" tone="violet" exportRows={data ? [{ rmse: data.metricas.rmse }] : []} {...state} />
     </div>
     <div className="model-banner"><Sparkles size={22} /><div><strong>Validación técnica del pipeline · {data?.modelo.algoritmo ?? "Regresión lineal múltiple"}</strong><span>{data ? `n = 100 datos sintéticos · ${data.modelo.entrenamiento}/${data.modelo.prueba} · semilla ${data.modelo.semilla} · ${data.modelo.version}` : "Cargando versión reproducible"}</span></div></div>
     <div className="methodology-note" role="note"><AlertTriangle size={19} /><div><strong>Alcance metodológico</strong><p>Estas métricas validan que el flujo de entrenamiento, almacenamiento y visualización sea reproducible. No prueban capacidad predictiva sobre ventas reales ni deben usarse para decisiones comerciales sin datos históricos observados y validación externa.</p></div></div>
@@ -196,7 +196,8 @@ export function ArchitecturePage() {
       <ArrowRight />
       <FlowStep number="04" icon={<BarChart3 />} title="Consumo BI" text="React, Supabase Data API y contenedor Power BI." />
     </div>
-    <div className="document-grid document-grid--2"><InfoCard label="Seguridad" value="RPC de solo lectura" text="Las tablas y vistas internas no se exponen; anon y authenticated solo ejecutan funciones analíticas aprobadas." /><InfoCard label="Despliegue" value="Vercel" text="Frontend estático, variables por entorno, cabeceras de seguridad y navegación SPA." /></div>
+    <div className="document-grid document-grid--3"><InfoCard label="Extract" value="Fuentes controladas" text="Encuesta sintética de 50 clientes, ventas determinísticas y catálogo de productos." /><InfoCard label="Transform" value="Limpieza y reglas" text="Tipificación, cálculo de margen, validaciones y normalización a claves dimensionales." /><InfoCard label="Load" value="PostgreSQL / Supabase" text="Carga reproducible al DataMart y exposición analítica mediante vistas y RPC de solo lectura." /></div>
+    <SqlBlock />
   </DocumentPage>;
 }
 
@@ -287,6 +288,34 @@ function FlowStep({ number: step, icon, title, text }: { number: string; icon: R
 
 function InfoCard({ label, value, text }: { label: string; value: string; text: string }) {
   return <div className="info-card"><span>{label}</span><strong>{value}</strong><p>{text}</p></div>;
+}
+
+function SqlBlock() {
+  const sql = `-- Vista analítica real del DataMart: margen por formato
+CREATE VIEW public.v_margen_por_formato
+WITH (security_invoker = true) AS
+SELECT
+  formato_promocion AS formato,
+  ROUND(SUM(total_venta), 2) AS ventas,
+  ROUND(SUM(margen_ganancia), 2) AS margen,
+  ROUND(100 * SUM(margen_ganancia)
+    / NULLIF(SUM(total_venta), 0), 1) AS margen_porcentaje
+FROM public.v_ventas_limpio
+GROUP BY formato_promocion;`;
+  return <section className="sql-panel" aria-label="SQL de la vista de margen por formato">
+    <header><i /><i /><i /><span>v_margen_por_formato.sql</span></header>
+    <pre><code>{sql.split("\n").map((line, index) => <span className={line.trim().startsWith("--") ? "sql-comment" : ""} key={`${line}-${index}`}>{highlightSql(line)}{"\n"}</span>)}</code></pre>
+  </section>;
+}
+
+function highlightSql(line: string) {
+  const tokens = line.split(/(\b(?:CREATE|VIEW|WITH|AS|SELECT|ROUND|SUM|NULLIF|FROM|GROUP|BY|true)\b|\b\d+(?:\.\d+)?\b)/gi);
+  return tokens.map((token, index) => {
+    const keyword = /^(CREATE|VIEW|WITH|AS|SELECT|FROM|GROUP|BY)$/i.test(token);
+    const fn = /^(ROUND|SUM|NULLIF)$/i.test(token);
+    const literal = /^(true|\d+(?:\.\d+)?)$/i.test(token);
+    return <span className={keyword ? "sql-keyword" : fn ? "sql-function" : literal ? "sql-literal" : undefined} key={`${token}-${index}`}>{token}</span>;
+  });
 }
 
 function DataTable({ rows, columns }: { rows: Record<string, unknown>[]; columns: Array<{ key: string; label: string; format?: (value: unknown) => string }> }) {
