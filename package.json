@@ -11,9 +11,10 @@
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
-    "test": "npm run typecheck && npm run test:sites",
+    "test": "npm run build && npm run test:sites && npm run test:project",
     "test:sites": "node --test tests/sites-worker.test.mjs",
-    "db:apply": "npx --yes supabase@latest db query --linked --file supabase/001_datamart_tambo.sql --agent no",
+    "test:project": "node --test tests/project-contract.test.mjs",
+    "db:apply": "npx --yes supabase@latest db push --linked",
     "db:verify": "npx --yes supabase@latest db query --linked --file supabase/verify_datamart.sql --agent no",
     "model:train": "python scripts/train_model.py --format json",
     "model:sql": "python scripts/train_model.py --format sql"
@@ -26,7 +27,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-router-dom": "7.18.1",
-    "vite": "6.4.2"
+    "vite": "6.4.3"
   },
   "devDependencies": {
     "@types/react": "19.2.17",

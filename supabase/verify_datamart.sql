@@ -25,7 +25,22 @@ select
   (select count(*) from public.prediccion_venta) as predicciones,
   (select count(*) from public.coeficiente_modelo) as coeficientes;
 
--- Prueba manual de permisos (debe fallar con 42501):
+select
+  jsonb_array_length(public.get_predictive(null,null,null,null,null,null)->'predicciones') as predicciones_rpc,
+  (public.get_predictive(null,null,null,null,null,null)->'metricas'->>'n')::integer as n_prueba_rpc;
+
+select
+  has_table_privilege('anon', 'public.hecho_ventas', 'select') as anon_lee_hecho,
+  has_table_privilege('anon', 'public.encuesta_clientes', 'select') as anon_lee_encuesta,
+  has_function_privilege('anon', 'public.get_summary(integer,integer,integer,integer,date,date)', 'execute') as anon_ejecuta_resumen;
+
+-- Pruebas manuales de permisos (la primera funciona; la segunda falla con 42501):
+-- begin;
+-- set local role anon;
+-- select public.get_summary(null,null,null,null,null,null);
+-- select * from public.hecho_ventas;
+-- rollback;
+--
 -- begin;
 -- set local role anon;
 -- insert into public.dim_categoria values (999, 'NO DEBE INSERTAR');

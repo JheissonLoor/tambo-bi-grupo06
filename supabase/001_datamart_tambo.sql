@@ -12,6 +12,7 @@ set local timezone = 'America/Lima';
 -- -----------------------------------------------------------------------------
 
 drop function if exists public.get_predictive(integer, integer, integer, integer, date, date);
+drop function if exists public.get_model_features();
 drop function if exists public.get_customers(integer, integer, integer, integer, date, date);
 drop function if exists public.get_promotions(integer, integer, integer, integer, date, date);
 drop function if exists public.get_sales(integer, integer, integer, integer, date, date);
@@ -852,8 +853,8 @@ create function public.get_filter_options()
 returns jsonb
 language sql
 stable
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 select jsonb_build_object(
   'tiendas', coalesce((select jsonb_agg(jsonb_build_object('id', id_tienda, 'nombre', nombre_tienda) order by nombre_tienda) from public.dim_tienda), '[]'::jsonb),
@@ -876,8 +877,8 @@ create function public.get_summary(
 returns jsonb
 language sql
 stable
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 with ventas as (
   select * from public.v_ventas_limpio v
@@ -964,8 +965,8 @@ create function public.get_sales(
 returns jsonb
 language sql
 stable
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 with ventas as (
   select * from public.v_ventas_limpio v
@@ -1020,8 +1021,8 @@ create function public.get_promotions(
 returns jsonb
 language sql
 stable
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 with ventas as (
   select * from public.v_ventas_limpio v
@@ -1069,8 +1070,8 @@ create function public.get_customers(
 returns jsonb
 language sql
 stable
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 with encuesta as (
   select * from public.v_encuesta_limpia e
@@ -1132,8 +1133,8 @@ create function public.get_predictive(
 returns jsonb
 language sql
 stable
-security invoker
-set search_path = public
+security definer
+set search_path = ''
 as $$
 with filtradas as (
   select pr.*
@@ -1189,8 +1190,19 @@ select jsonb_build_object(
 from modelo m cross join metricas x;
 $$;
 
+-- Superficie controlada para reproducir el entrenamiento sin exponer la vista.
+create function public.get_model_features()
+returns setof public.v_model_features
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select * from public.v_model_features order by id_venta;
+$$;
+
 -- -----------------------------------------------------------------------------
--- Seguridad: Data API explicita, RLS y lectura publica solamente
+-- Seguridad: Data API explicita; tablas y vistas internas no son endpoints
 -- -----------------------------------------------------------------------------
 
 alter default privileges for role postgres in schema public
@@ -1221,13 +1233,11 @@ begin
   ]
   loop
     execute format('alter table public.%I enable row level security', t);
-    execute format('revoke all on table public.%I from anon, authenticated', t);
-    execute format('grant select on table public.%I to anon, authenticated', t);
-    execute format('create policy "lectura_publica" on public.%I for select to anon, authenticated using (true)', t);
+    execute format('revoke all on table public.%I from public, anon, authenticated', t);
   end loop;
 end $$;
 
-grant select on
+revoke all on
   public.v_ventas_limpio,
   public.v_encuesta_limpia,
   public."V_Ventas_Limpio",
@@ -1246,7 +1256,7 @@ grant select on
   public.v_detalle_promociones,
   public.v_descriptivos_18_25,
   public.v_model_features
-to anon, authenticated;
+from public, anon, authenticated;
 
 revoke all on function public.get_filter_options() from public, anon, authenticated;
 revoke all on function public.get_summary(integer,integer,integer,integer,date,date) from public, anon, authenticated;
@@ -1254,6 +1264,7 @@ revoke all on function public.get_sales(integer,integer,integer,integer,date,dat
 revoke all on function public.get_promotions(integer,integer,integer,integer,date,date) from public, anon, authenticated;
 revoke all on function public.get_customers(integer,integer,integer,integer,date,date) from public, anon, authenticated;
 revoke all on function public.get_predictive(integer,integer,integer,integer,date,date) from public, anon, authenticated;
+revoke all on function public.get_model_features() from public, anon, authenticated;
 
 grant execute on function public.get_filter_options() to anon, authenticated;
 grant execute on function public.get_summary(integer,integer,integer,integer,date,date) to anon, authenticated;
@@ -1261,6 +1272,7 @@ grant execute on function public.get_sales(integer,integer,integer,integer,date,
 grant execute on function public.get_promotions(integer,integer,integer,integer,date,date) to anon, authenticated;
 grant execute on function public.get_customers(integer,integer,integer,integer,date,date) to anon, authenticated;
 grant execute on function public.get_predictive(integer,integer,integer,integer,date,date) to anon, authenticated;
+grant execute on function public.get_model_features() to anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Pruebas de aceptacion: cualquier desviacion aborta toda la transaccion
@@ -1279,6 +1291,8 @@ declare
   v_survey integer;
   v_segment integer;
   v_2x1_margin numeric;
+  v_rpc_pred integer;
+  t text;
   d record;
 begin
   select count(*), round(sum(total_venta),2), round(avg(total_venta),2),
@@ -1337,6 +1351,26 @@ begin
   if (select (public.get_summary(null,null,null,null,null,null)->'insight2x1'->>'preferenciaPorcentaje')::numeric) <> 84 then
     raise exception 'La preferencia 2x1 del segmento 18-25 debe ser 84%%';
   end if;
+
+  select jsonb_array_length(public.get_predictive(null,null,null,null,null,null)->'predicciones')
+  into v_rpc_pred;
+  if v_rpc_pred <> 30
+     or (public.get_predictive(null,null,null,null,null,null)->'metricas'->>'n')::integer <> 30 then
+    raise exception 'La RPC predictiva debe devolver exactamente 30 observaciones de prueba; obtuvo %', v_rpc_pred;
+  end if;
+
+  foreach t in array array[
+    'dim_categoria','dim_subcategoria','dim_marca','dim_producto',
+    'dim_ciudad','dim_distrito','dim_tienda','dim_tipo_cliente','dim_cliente',
+    'dim_tipo_promocion','dim_campania','dim_promocion','dim_tiempo',
+    'hecho_ventas','encuesta_clientes','modelo_predictivo','coeficiente_modelo','prediccion_venta'
+  ]
+  loop
+    if has_table_privilege('anon', format('public.%I', t), 'select')
+       or has_table_privilege('authenticated', format('public.%I', t), 'select') then
+      raise exception 'La tabla % no debe exponer SELECT directo a roles de Data API', t;
+    end if;
+  end loop;
 
   if exists (
     select 1 from public.hecho_ventas

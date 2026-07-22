@@ -1,0 +1,28 @@
+name: Calidad continua
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Compilar y ejecutar pruebas
+        run: npm test
+      - name: Auditar dependencias de producción
+        run: npm audit --omit=dev --audit-level=high

@@ -2,8 +2,8 @@
 """Entrena y serializa la regresion lineal del DataMart Tambo.
 
 Por defecto usa el fixture deterministico de 100 ventas que tambien se genera en
-supabase/001_datamart_tambo.sql. Con --supabase lee v_model_features mediante
-la Data API. No escribe en Supabase: imprime JSON o SQL para que el resultado
+supabase/001_datamart_tambo.sql. Con --supabase ejecuta la RPC de solo lectura
+get_model_features. No escribe en Supabase: imprime JSON o SQL para que el resultado
 pueda revisarse y versionarse.
 """
 
@@ -15,7 +15,6 @@ import hashlib
 import json
 import math
 import os
-import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -114,10 +113,11 @@ def supabase_rows() -> list[Row]:
     key = os.environ.get("VITE_SUPABASE_PUBLISHABLE_KEY", "")
     if not url or not key:
         raise SystemExit("Faltan VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY")
-    query = urllib.parse.urlencode({"select": "*", "order": "id_venta.asc"})
     request = urllib.request.Request(
-        f"{url}/rest/v1/v_model_features?{query}",
-        headers={"apikey": key, "Authorization": f"Bearer {key}"},
+        f"{url}/rest/v1/rpc/get_model_features",
+        data=b"{}",
+        headers={"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         payload = json.load(response)
