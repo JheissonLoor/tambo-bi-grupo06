@@ -324,9 +324,9 @@ insert into public.dim_distrito values
   (3, 1, 'Cercado de Lima');
 
 insert into public.dim_tienda values
-  (1, 1, 'Tambo UC', 'UC-001'),
-  (2, 2, 'Tambo Lince', 'LIN-002'),
-  (3, 3, 'Tambo Centro', 'CEN-003');
+  (1, 1, 'UC · Av. Universitaria', 'UC-AVU-01'),
+  (2, 2, 'UC · Puerta 3', 'UC-P03-02'),
+  (3, 3, 'UC · Óvalo', 'UC-OVA-03');
 
 insert into public.dim_tipo_cliente values
   (1, 'Estudiante'),
