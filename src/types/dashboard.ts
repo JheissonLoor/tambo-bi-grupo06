@@ -53,12 +53,14 @@ export type SalesData = {
 export type PromotionsData = {
   kpis: { ventas: number; margen: number; transacciones: number };
   formatos: Array<{ formato: string; transacciones: number; ventas: number; margen: number; margen_porcentaje: number }>;
-  detalle: Array<{ id_promocion: number; promocion: string; formato: string; campania: string; transacciones: number; ventas: number; margen: number; margen_porcentaje: number }>;
+  detalle: Array<{ id_promocion: number; promocion: string; formato: string; campania: string; categoria: string; marca: string; transacciones: number; ventas: number; margen: number; margen_porcentaje: number }>;
 };
 
 export type CustomersData = {
   kpis: { respuestas: number; edad_minima: number; edad_maxima: number; frecuencia_media: number };
   edades: Array<{ label: string; respuestas: number; porcentaje: number }>;
+  generos: Array<{ label: string; respuestas: number; porcentaje: number }>;
+  frecuenciaUso: Array<{ nivel: number; respuestas: number; porcentaje: number }>;
   formatos: Array<{ label: string; respuestas: number; porcentaje: number }>;
   horarios: Array<{ label: string; respuestas: number; porcentaje: number }>;
   segmento1825: {
