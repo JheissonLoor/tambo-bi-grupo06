@@ -1,0 +1,21 @@
+# Dependencies and builds
+node_modules/
+dist/
+.vercel/
+
+# Local environment files (never commit credentials)
+.env
+.env.*
+!.env.example
+
+# Supabase local/link state
+supabase/.temp/
+supabase/.branches/
+
+# Test and editor artifacts
+coverage/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+Thumbs.db
