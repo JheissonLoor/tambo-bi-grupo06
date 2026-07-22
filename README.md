@@ -4,6 +4,8 @@ Dashboard académico de Inteligencia de Negocios para evaluar promociones comerc
 
 > Universidad Tecnológica del Perú · Inteligencia de Negocios · Grupo 06 · 2026
 
+**Producción:** [tambo-bi-grupo06.vercel.app](https://tambo-bi-grupo06.vercel.app)
+
 ![Resumen del dashboard](tests/visual/implementation-summary-1440x940.png)
 
 ## Resultados verificables
