@@ -173,7 +173,7 @@ export function DivergingBars({ data }: { data: ChartItem[] }) {
   );
 }
 
-export function DonutChart({ data, centerLabel, valueFormatter = (value) => number(value, 0), centerFormatter = valueFormatter }: { data: ChartItem[]; centerLabel: string; valueFormatter?: (value: number) => string; centerFormatter?: (value: number) => string }) {
+export function DonutChart({ data, centerLabel, valueFormatter = (value) => number(value, 0), centerFormatter = valueFormatter, labelFirst = false }: { data: ChartItem[]; centerLabel: string; valueFormatter?: (value: number) => string; centerFormatter?: (value: number) => string; labelFirst?: boolean }) {
   const titleId = useId();
   const descriptionId = useId();
   const progress = useAnimatedProgress(dataKey(data));
@@ -209,8 +209,8 @@ export function DonutChart({ data, centerLabel, valueFormatter = (value) => numb
               />
             </g>;
           })}
-          <text x="90" y="86" textAnchor="middle" className="donut-number">{activeItem ? valueFormatter(activeItem.value) : centerFormatter(total)}</text>
-          <text x="90" y="105" textAnchor="middle" className="donut-label">{activeItem ? shortLabel(activeItem.label) : centerLabel}</text>
+          <text x="90" y={labelFirst ? "83" : "86"} textAnchor="middle" className={labelFirst ? "donut-label" : "donut-number"}>{activeItem ? (labelFirst ? shortLabel(activeItem.label) : valueFormatter(activeItem.value)) : (labelFirst ? centerLabel : centerFormatter(total))}</text>
+          <text x="90" y={labelFirst ? "106" : "105"} textAnchor="middle" className={labelFirst ? "donut-number" : "donut-label"}>{activeItem ? (labelFirst ? valueFormatter(activeItem.value) : shortLabel(activeItem.label)) : (labelFirst ? centerFormatter(total) : centerLabel)}</text>
         </svg>
         <ChartTooltip tooltip={tooltip} />
       </div>
@@ -235,16 +235,19 @@ export function ScatterPlot({ data }: { data: Array<{ real: number; projected: n
       <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
         <title id={titleId}>Venta real frente a venta proyectada</title>
         <desc id={descriptionId}>{`${data.length} observaciones de prueba. Cada punto compara la venta real con la estimación del modelo técnico.`}</desc>
-        {[0, .25, .5, .75, 1].map((ratio) => <g key={ratio}><line x1={pad} x2={width - pad} y1={y(min + span * ratio)} y2={y(min + span * ratio)} className="chart-grid" /><line y1={pad} y2={height - pad} x1={x(min + span * ratio)} x2={x(min + span * ratio)} className="chart-grid" /></g>)}
+        {[0, .25, .5, .75, 1].map((ratio) => {
+          const tick = min + span * ratio;
+          return <g key={ratio}><line x1={pad} x2={width - pad} y1={y(tick)} y2={y(tick)} className="chart-grid" /><line y1={pad} y2={height - pad} x1={x(tick)} x2={x(tick)} className="chart-grid" /><text x={pad - 7} y={y(tick) + 4} textAnchor="end" className="chart-axis">{money(tick, 0)}</text><text x={x(tick)} y={height - pad + 18} textAnchor="middle" className="chart-axis">{money(tick, 0)}</text></g>;
+        })}
         <line className="scatter-reference" x1={x(min)} y1={y(min)} x2={x(max)} y2={y(max)} stroke="#66707f" style={{ strokeDasharray: 800, strokeDashoffset: 800 * (1 - progress) }} />
         {data.map((point, index) => <circle
           className="scatter-point"
           key={point.id}
           cx={x(point.real)} cy={y(point.projected)} r={active === index ? 7 : 5}
-          fill="#4cc9e6" stroke="#0c1017" strokeWidth="1"
+          fill="#d18a1b" stroke="#0c1017" strokeWidth="1.5"
           style={{ opacity: (active == null || active === index ? .86 : .3) * progress }}
           onMouseEnter={() => setActive(index)}
-          onMouseMove={(event) => setTooltipAt(event, setTooltip, [{ label: `Venta ${point.id}`, value: "", color: "#4cc9e6" }, { label: "Real", value: money(point.real) }, { label: "Proyectada", value: money(point.projected) }])}
+          onMouseMove={(event) => setTooltipAt(event, setTooltip, [{ label: `Venta ${point.id}`, value: "", color: "#d18a1b" }, { label: "Real", value: money(point.real) }, { label: "Proyectada", value: money(point.projected) }])}
         />)}
         <text x={width / 2} y={height - 7} textAnchor="middle" className="chart-label">Venta real</text>
         <text transform={`translate(12 ${height / 2}) rotate(-90)`} textAnchor="middle" className="chart-label">Venta proyectada</text>
@@ -252,6 +255,54 @@ export function ScatterPlot({ data }: { data: Array<{ real: number; projected: n
       <ChartTooltip tooltip={tooltip} />
     </div>
   );
+}
+
+export function DivergingColumnChart({ data, height = 230 }: { data: ChartItem[]; height?: number }) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const patternId = useId().replace(/:/g, "");
+  const progress = useAnimatedProgress(dataKey(data));
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [tooltip, setTooltip] = useState<TooltipState>(null);
+  const width = 680;
+  const left = 52;
+  const top = 16;
+  const bottom = 47;
+  const innerHeight = height - top - bottom;
+  const maxValue = Math.max(...data.map((item) => item.value), 1);
+  const minValue = Math.min(...data.map((item) => item.value), 0);
+  const upper = maxValue * 1.18;
+  const lower = minValue < 0 ? minValue * 1.75 : 0;
+  const span = Math.max(upper - lower, 1);
+  const y = (value: number) => top + (upper - value) / span * innerHeight;
+  const baseline = y(0);
+  const slot = (width - left - 12) / Math.max(data.length, 1);
+  const barWidth = Math.min(54, slot * .56);
+  return <div className="chart-stage" onMouseLeave={() => { setHovered(null); setTooltip(null); }}>
+    <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
+      <title id={titleId}>Margen por formato</title>
+      <desc id={descriptionId}>{describeItems(data, money)}</desc>
+      <defs><pattern id={patternId} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(135)"><rect width="8" height="8" fill="#ff6b5e" /><rect width="3" height="8" fill="#ffb0a9" /></pattern></defs>
+      <line x1={left} x2={width - 10} y1={baseline} y2={baseline} className="diverging-column__baseline" />
+      <text x={left - 8} y={baseline + 4} textAnchor="end" className="chart-axis">S/ 0</text>
+      {data.map((item, index) => {
+        const negative = item.value < 0;
+        const fullHeight = Math.max(2, Math.abs(y(item.value) - baseline));
+        const animatedHeight = fullHeight * progress;
+        const x = left + slot * index + (slot - barWidth) / 2;
+        const barY = negative ? baseline : baseline - animatedHeight;
+        const color = item.color ?? palette[index % palette.length];
+        return <g key={`${item.label}-${index}`} className={`chart-mark ${hovered === index ? "chart-mark--active" : ""}`} style={{ opacity: hovered == null || hovered === index ? 1 : .32 }} onMouseEnter={() => setHovered(index)} onMouseMove={(event) => setTooltipAt(event, setTooltip, [{ label: item.label, value: money(item.value), color: negative ? "#ff6b5e" : color }])}>
+          <rect className="chart-bar-hit" x={x - slot * .16} y={top} width={barWidth + slot * .32} height={innerHeight} fill="transparent" />
+          <rect className="chart-bar" x={x} y={barY} width={barWidth} height={animatedHeight} rx="5" fill={negative ? `url(#${patternId})` : color} />
+          <text x={x + barWidth / 2} y={negative ? baseline + animatedHeight + 17 : barY - 8} textAnchor="middle" className={negative ? "chart-value chart-value--negative" : "chart-value"} opacity={progress > .72 ? 1 : 0}>{money(item.value, 0)}</text>
+          {negative && progress > .82 ? <g className="negative-margin-label"><rect x={x + barWidth / 2 - 55} y={baseline + animatedHeight + 25} width="110" height="18" rx="9" /><text x={x + barWidth / 2} y={baseline + animatedHeight + 37} textAnchor="middle">⚠ MARGEN NEGATIVO</text></g> : null}
+          <text x={x + barWidth / 2} y={height - 13} textAnchor="middle" className={negative ? "chart-label chart-label--negative" : "chart-label"}>{shortLabel(item.label)}</text>
+        </g>;
+      })}
+    </svg>
+    <ChartTooltip tooltip={tooltip} />
+  </div>;
 }
 
 function ChartTooltip({ tooltip }: { tooltip: TooltipState }) {

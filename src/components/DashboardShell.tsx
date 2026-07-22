@@ -65,6 +65,8 @@ const titles: Record<string, [string, string]> = {
   equipo: ["Documentación", "Equipo"],
 };
 
+const officialTamboLogo = "https://tofuu.getjusto.com/orioneat-local/resized2/7ew2GAXvuqynMCdfL-x-300.webp";
+
 export function DashboardShell({ page, children }: { page: string; children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -79,8 +81,8 @@ export function DashboardShell({ page, children }: { page: string; children: Rea
       {mobileOpen ? <button className="sidebar-scrim" type="button" aria-label="Cerrar navegación" onClick={() => setMobileOpen(false)} /> : null}
       <aside id="dashboard-navigation" className={`sidebar ${mobileOpen ? "sidebar--open" : ""}`} aria-label="Navegación principal">
         <div className="brand">
-          <div className="brand__mark">T+</div>
-          <div className="brand__copy"><strong>Tambo+</strong><span>TABLERO · SEDE UC</span></div>
+          <div className="brand__mark"><img src={officialTamboLogo} alt="Tambo+" /></div>
+          <div className="brand__copy"><span>TABLERO · SEDE UC</span></div>
           <button className="icon-button sidebar__collapse" type="button" onClick={() => setCollapsed((value) => !value)} aria-label="Colapsar panel"><ChevronsLeft size={17} /></button>
         </div>
         <nav className="sidebar__nav">

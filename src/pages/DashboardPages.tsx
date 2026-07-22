@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
 import { AlertTriangle, ArrowRight, BadgeCheck, BarChart3, Database, Layers3, Search, ShieldCheck, Sparkles, Workflow } from "lucide-react";
-import { BarChart, DivergingBars, DonutChart, HorizontalBarChart, LineAreaChart, ScatterPlot } from "../components/Charts";
+import { BarChart, DivergingBars, DivergingColumnChart, DonutChart, HorizontalBarChart, LineAreaChart, ScatterPlot } from "../components/Charts";
 import { KpiCard, Tile } from "../components/Tile";
 import { SnowflakeDiagram } from "../components/SnowflakeDiagram";
 import { filtersKey } from "../components/DashboardShell";
 import { useDashboardFilters } from "../context/FiltersContext";
 import { getCustomers, getPredictive, getPromotions, getSales, getSummary } from "../data/tamboDataService";
 import { dataDictionary } from "../data/dataDictionary";
+import type { CustomersData, PredictiveData } from "../types/dashboard";
 import { money, number } from "../utils/format";
 
 const tones = ["#f5a623", "#ff6b5e", "#4cc9e6", "#9b8cff", "#8794a8"];
@@ -96,17 +97,13 @@ export function PromotionsPage() {
   const query = useQuery({ queryKey: ["tambo", "promotions", ...filtersKey(filters)], queryFn: ({ signal }) => getPromotions(filters, signal) });
   const data = query.data;
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
-  return <div className="page-stack">
-    <div className="kpi-grid kpi-grid--3">
-      <KpiCard id="promo-ventas" label="Ventas con promoción" value={money(data?.kpis.ventas)} animatedValue={data?.kpis.ventas} valueFormatter={(value) => money(value)} detail="SUM(total_venta)" exportRows={data ? [{ ventas: data.kpis.ventas }] : []} {...state} />
-      <KpiCard id="promo-transacciones" label="Usos de promoción" value={number(data?.kpis.transacciones)} animatedValue={data?.kpis.transacciones} valueFormatter={(value) => number(value)} detail="Transacciones promocionadas" tone="teal" exportRows={data ? [{ transacciones: data.kpis.transacciones }] : []} {...state} />
-      <KpiCard id="promo-margen" label="Margen promocional" value={money(data?.kpis.margen)} animatedValue={data?.kpis.margen} valueFormatter={(value) => money(value)} detail="Incluye pérdidas legítimas" tone="coral" exportRows={data ? [{ margen: data.kpis.margen }] : []} {...state} />
+  const negativeCount = data?.formatos.filter((item) => item.margen < 0).length ?? 0;
+  return <div className="page-stack promotions-page">
+    <div className="analysis-grid analysis-grid--2 promotions-page__charts">
+      <Tile id="promo-ventas-formato" title="Ventas por formato" subtitle="volumen en soles" exportRows={asRows(data?.formatos ?? [])} empty={data?.formatos.length === 0} {...state}>{data ? <BarChart height={238} data={data.formatos.map((item, index) => ({ label: item.formato, value: item.ventas, color: tones[index] }))} /> : null}</Tile>
+      <Tile id="promo-margen-formato" title="Margen por formato" subtitle="utilidad en soles · alerta en negativos" badge={negativeCount ? <span className="status-badge status-badge--danger"><AlertTriangle size={11} />{negativeCount} ALERTA{negativeCount === 1 ? "" : "S"}</span> : undefined} exportRows={asRows(data?.formatos ?? [])} empty={data?.formatos.length === 0} {...state}>{data ? <DivergingColumnChart height={238} data={data.formatos.map((item, index) => ({ label: item.formato, value: item.margen, color: tones[index] }))} /> : null}</Tile>
     </div>
-    <div className="analysis-grid analysis-grid--2">
-      <Tile id="promo-ventas-formato" title="Ventas por formato promocional" subtitle="SUM(total_venta)" exportRows={asRows(data?.formatos ?? [])} empty={data?.formatos.length === 0} {...state}>{data ? <BarChart data={data.formatos.map((item, index) => ({ label: item.formato, value: item.ventas, color: tones[index] }))} /> : null}</Tile>
-      <Tile id="promo-margen-formato" title="Margen por formato" subtitle="las pérdidas se conservan" exportRows={asRows(data?.formatos ?? [])} empty={data?.formatos.length === 0} {...state}>{data ? <DivergingBars data={data.formatos.map((item) => ({ label: item.formato, value: item.margen }))} /> : null}</Tile>
-    </div>
-    <Tile id="promo-detalle" title="Detalle de promociones" subtitle="8 promociones del proyecto" exportRows={asRows(data?.detalle ?? [])} empty={data?.detalle.length === 0} {...state}>{data ? <DataTable columns={[{ key: "promocion", label: "Promoción" }, { key: "formato", label: "Formato" }, { key: "campania", label: "Campaña" }, { key: "transacciones", label: "Tx", format: (value) => number(Number(value)) }, { key: "ventas", label: "Ventas", format: (value) => money(Number(value)) }, { key: "margen", label: "Margen", format: (value) => money(Number(value)) }, { key: "margen_porcentaje", label: "%", format: (value) => `${number(Number(value), 1)}%` }]} rows={asRows(data.detalle)} /> : null}</Tile>
+    <Tile id="promo-detalle" title="Drill-down por subcategoría y marca" subtitle={`detalle de promociones · ${number(data?.detalle.length)} registros`} exportRows={asRows(data?.detalle ?? [])} empty={data?.detalle.length === 0} {...state}>{data ? <DataTable columns={[{ key: "promocion", label: "Promoción" }, { key: "formato", label: "Formato" }, { key: "categoria", label: "Categoría" }, { key: "marca", label: "Marca" }, { key: "transacciones", label: "Tx", format: (value) => number(Number(value)) }, { key: "ventas", label: "Ventas", format: (value) => money(Number(value)) }, { key: "margen_porcentaje", label: "Margen %", format: (value) => <span className={Number(value) < 0 ? "metric-negative" : "metric-positive"}>{formatPercentSigned(Number(value))}</span> }]} rows={asRows(data.detalle)} /> : null}</Tile>
   </div>;
 }
 
@@ -116,20 +113,19 @@ export function CustomersPage() {
   const data = query.data;
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
   const segment = data?.segmento1825;
-  const dominantAge = data ? [...data.edades].sort((a, b) => b.porcentaje - a.porcentaje)[0] : undefined;
-  return <div className="page-stack">
-    <div className="kpi-grid kpi-grid--3">
-      <KpiCard id="clientes-respuestas" label="Respuestas" value={number(data?.kpis.respuestas)} animatedValue={data?.kpis.respuestas} valueFormatter={(value) => number(value)} detail="Encuestas válidas" exportRows={data ? [{ respuestas: data.kpis.respuestas }] : []} {...state} />
-      <KpiCard id="clientes-rango" label="Segmento de edad dominante" value={dominantAge ? `${dominantAge.label} años` : "—"} detail={dominantAge ? `${number(dominantAge.porcentaje, 1)}% de las respuestas filtradas` : "Sin respuestas"} tone="teal" exportRows={data ? asRows(data.edades) : []} {...state} />
-      <KpiCard id="clientes-frecuencia" label="Frecuencia declarada de uso" value={`${number(data?.kpis.frecuencia_media, 2)} / 3`} animatedValue={data?.kpis.frecuencia_media} valueFormatter={(value) => `${number(value, 2)} / 3`} detail="Promedio de encuesta · escala 0–3" tone="violet" exportRows={data ? [{ frecuencia_media: data.kpis.frecuencia_media }] : []} {...state} />
+  const ages = data?.edades ?? [];
+  const dominantAge = [...ages].sort((a, b) => b.porcentaje - a.porcentaje)[0];
+  const genders = data?.generos ?? [];
+  const frequency = data?.frecuenciaUso ?? [];
+  return <div className="page-stack customers-page">
+    <div className="analysis-grid analysis-grid--2 customers-page__top">
+      <Tile id="clientes-edades" title="Distribución por edad" subtitle="% de la muestra · segmento objetivo resaltado" exportRows={asRows(ages)} empty={ages.length === 0} {...state}>{data ? <HorizontalBarChart moneyValues={false} data={ages.map((item) => ({ label: formatAgeRange(item.label), value: item.porcentaje, color: item.label === dominantAge?.label ? tones[0] : "#566477" }))} /> : null}</Tile>
+      <Tile id="clientes-genero" title="Distribución por género" subtitle="% de la muestra" exportRows={asRows(genders)} empty={genders.length === 0} {...state}>{data ? <DonutChart data={genders.map((item, index) => ({ label: item.label, value: item.porcentaje, color: index === 0 ? tones[0] : "#91a0b5" }))} centerLabel="Muestra" centerFormatter={() => `n=${number(data.kpis.respuestas)}`} valueFormatter={(value) => `${number(value, 1)}%`} labelFirst /> : null}</Tile>
+      <Tile id="clientes-frecuencia" title="Frecuencia de uso de promociones" subtitle={`histograma · escala 0–3 · n=${number(segment?.n)}`} exportRows={asRows(frequency)} empty={frequency.length === 0} {...state}>{data ? <BarChart height={200} moneyValues={false} data={frequency.map((item) => ({ label: String(item.nivel), value: item.respuestas, color: item.nivel >= 2 ? tones[0] : "#91a0b5" }))} /> : null}</Tile>
+      <Tile id="clientes-percepciones" title="Percepciones clave" subtitle="respuestas afirmativas" exportRows={segment ? [{ identifica: segment.identifica_porcentaje, ahorro: segment.ahorro_porcentaje, preferencia_2x1: segment.prefiere_2x1_porcentaje }] : []} empty={!segment?.n} {...state}>{segment ? <PerceptionBars data={[{ label: "Identifica con facilidad las promociones", value: segment.identifica_porcentaje }, { label: "Percibe ahorro real", value: segment.ahorro_porcentaje }, { label: "Prefiere combos / 2×1", value: segment.prefiere_2x1_porcentaje }]} /> : null}</Tile>
     </div>
-    <div className="analysis-grid analysis-grid--3">
-      <Tile id="clientes-edades" title="Distribución por edad" subtitle="% de la muestra" exportRows={asRows(data?.edades ?? [])} empty={data?.edades.length === 0} {...state}>{data ? <HorizontalBarChart moneyValues={false} data={data.edades.map((item, index) => ({ label: `${item.label} años`, value: item.porcentaje, color: index === 0 ? tones[0] : "#4c5a6b" }))} /> : null}</Tile>
-      <Tile id="clientes-formatos" title="Formato preferido" subtitle="declaración de encuesta" exportRows={asRows(data?.formatos ?? [])} empty={data?.formatos.length === 0} {...state}>{data ? <BarChart height={260} moneyValues={false} data={data.formatos.map((item, index) => ({ label: item.label, value: item.porcentaje, color: tones[index] }))} /> : null}</Tile>
-      <Tile id="clientes-horarios" title="Horario preferido" subtitle="encuesta" exportRows={asRows(data?.horarios ?? [])} empty={data?.horarios.length === 0} {...state}>{data ? <DonutChart data={data.horarios.map((item, index) => ({ label: labelTime(item.label), value: item.respuestas, color: tones[index] }))} centerLabel="respuestas" /> : null}</Tile>
-    </div>
-    <Tile id="clientes-segmento" title="Descriptivos del segmento 18–25" subtitle={`n = ${number(segment?.n)} · media y desviación estándar`} exportRows={segment ? [{ ...segment }] : []} empty={!segment?.n} {...state}>
-      {segment ? <div className="descriptive-grid"><Descriptive label="Visita semanal" mean={segment.visita_media} sd={segment.visita_de} /><Descriptive label="Aprovechamiento" mean={segment.aprovechamiento_media} sd={segment.aprovechamiento_de} /><Descriptive label="Atractivo" mean={segment.atractivo_media} sd={segment.atractivo_de} /><Descriptive label="Satisfacción" mean={segment.satisfaccion_media} sd={segment.satisfaccion_de} /><PercentStat label="Identifica promociones" value={segment.identifica_porcentaje} /><PercentStat label="Percibe ahorro" value={segment.ahorro_porcentaje} /><PercentStat label="Prefiere 2x1" value={segment.prefiere_2x1_porcentaje} highlight /></div> : null}
+    <Tile id="clientes-segmento" title="Estadísticos descriptivos del segmento" subtitle={`muestra objetivo 18–25 años · n=${number(segment?.n)}`} exportRows={segment ? [{ ...segment }] : []} empty={!segment?.n} {...state}>
+      {segment ? <CustomerStatisticsTable segment={segment} /> : null}
     </Tile>
   </div>;
 }
@@ -137,41 +133,40 @@ export function CustomersPage() {
 export function PredictivePage() {
   const { filters } = useDashboardFilters();
   const query = useQuery({ queryKey: ["tambo", "predictive", ...filtersKey(filters)], queryFn: ({ signal }) => getPredictive(filters, signal) });
-  const evidenceQuery = useQuery({ queryKey: ["tambo", "customers", ...filtersKey(filters)], queryFn: ({ signal }) => getCustomers(filters, signal) });
   const data = query.data;
-  const segment = evidenceQuery.data?.segmento1825;
   const state = { loading: query.isLoading, error: query.error, onRetry: query.refetch, onRefresh: query.refetch };
-  return <div className="page-stack">
-    <div className="kpi-grid kpi-grid--3">
-      <KpiCard id="modelo-r2" label="R² filtrado" value={data?.metricas.r2 == null ? "Sin variación" : number(data.metricas.r2, 3)} animatedValue={data?.metricas.r2} valueFormatter={(value) => number(value, 3)} detail={`${number(data?.metricas.n)} predicciones visibles`} exportRows={data ? [{ r2: data.metricas.r2, n: data.metricas.n }] : []} {...state} />
-      <KpiCard id="modelo-mae" label="MAE" value={data?.metricas.mae == null ? "—" : money(data.metricas.mae)} animatedValue={data?.metricas.mae} valueFormatter={(value) => money(value)} detail="Error absoluto medio" tone="teal" exportRows={data ? [{ mae: data.metricas.mae }] : []} {...state} />
-      <KpiCard id="modelo-rmse" label="RMSE" value={data?.metricas.rmse == null ? "—" : money(data.metricas.rmse)} animatedValue={data?.metricas.rmse} valueFormatter={(value) => money(value)} detail="Raíz del error cuadrático" tone="violet" exportRows={data ? [{ rmse: data.metricas.rmse }] : []} {...state} />
+  return <div className="page-stack predictive-page">
+    <div className="kpi-grid predictive-kpis">
+      <KpiCard id="modelo-r2" label="R²" value={data?.metricas.r2 == null ? "—" : number(data.metricas.r2, 3)} animatedValue={data?.metricas.r2} valueFormatter={(value) => number(value, 3)} detail="bondad de ajuste" badge={false} exportRows={data ? [{ r2: data.metricas.r2, n: data.metricas.n }] : []} {...state} />
+      <KpiCard id="modelo-mae" label="MAE" value={data?.metricas.mae == null ? "—" : money(data.metricas.mae)} animatedValue={data?.metricas.mae} valueFormatter={(value) => money(value)} detail="error absoluto medio" badge={false} tone="teal" exportRows={data ? [{ mae: data.metricas.mae }] : []} {...state} />
+      <KpiCard id="modelo-rmse" label="RMSE" value={data?.metricas.rmse == null ? "—" : money(data.metricas.rmse)} animatedValue={data?.metricas.rmse} valueFormatter={(value) => money(value)} detail="raíz del error cuadrático" badge={false} tone="violet" exportRows={data ? [{ rmse: data.metricas.rmse }] : []} {...state} />
+      <KpiCard id="modelo-split" label="n" value={data ? `${data.modelo.entrenamiento} / ${data.modelo.prueba}` : "—"} detail="entrenamiento / prueba" badge={false} tone="teal" exportRows={data ? [{ entrenamiento: data.modelo.entrenamiento, prueba: data.modelo.prueba }] : []} {...state} />
     </div>
-    <div className="model-banner"><Sparkles size={22} /><div><strong>Validación técnica del pipeline · {data?.modelo.algoritmo ?? "Regresión lineal múltiple"}</strong><span>{data ? `n = 100 datos sintéticos · ${data.modelo.entrenamiento}/${data.modelo.prueba} · semilla ${data.modelo.semilla} · ${data.modelo.version}` : "Cargando versión reproducible"}</span></div></div>
-    <div className="methodology-note" role="note"><AlertTriangle size={19} /><div><strong>Alcance metodológico</strong><p>Estas métricas validan que el flujo de entrenamiento, almacenamiento y visualización sea reproducible. No prueban capacidad predictiva sobre ventas reales ni deben usarse para decisiones comerciales sin datos históricos observados y validación externa.</p></div></div>
-    <div className="analysis-grid analysis-grid--2">
-      <Tile id="modelo-coeficientes" title="Importancia de variables" subtitle="coeficientes estandarizados" exportRows={asRows(data?.coeficientes ?? [])} empty={data?.coeficientes.length === 0} {...state}>{data ? <DivergingBars data={data.coeficientes.map((item) => ({ label: variableLabel(item.variable), value: item.coeficiente_estandarizado }))} /> : null}</Tile>
-      <Tile id="modelo-scatter" title="Real frente a proyectado" subtitle="conjunto de prueba filtrado" exportRows={asRows(data?.predicciones ?? [])} empty={data?.predicciones.length === 0} {...state}>{data ? <ScatterPlot data={data.predicciones.map((point) => ({ id: point.idVenta, real: point.real, projected: point.proyectada }))} /> : null}</Tile>
+    <div className="analysis-grid analysis-grid--predictive">
+      <Tile id="modelo-scatter" title="Venta real vs. proyectada" subtitle={`conjunto de prueba · n=${number(data?.metricas.n)}`} exportRows={asRows(data?.predicciones ?? [])} empty={data?.predicciones.length === 0} {...state}>{data ? <ScatterPlot data={data.predicciones.map((point) => ({ id: point.idVenta, real: point.real, projected: point.proyectada }))} /> : null}</Tile>
+      <Tile id="modelo-coeficientes" title="Variables predictoras" subtitle="coeficientes estandarizados" exportRows={asRows(data?.coeficientes ?? [])} empty={data?.coeficientes.length === 0} {...state}>{data ? <PredictorBars data={data.coeficientes} /> : null}</Tile>
     </div>
-    <Tile id="modelo-ecuacion" title="Ecuación del modelo" subtitle="coeficientes originales · no estandarizados" exportRows={asRows(data?.coeficientes ?? [])} empty={data?.coeficientes.length === 0} {...state}>{data ? <div className="equation"><span>ŷ = {number(data.modelo.intercepto, 4)}</span>{data.coeficientes.map((item) => <span key={item.variable}>{formatSigned(item.coeficiente_original)} · {variableSymbol(item.variable)}</span>)}</div> : null}</Tile>
-    <Tile id="modelo-evidencia-segmento" title="Evidencia exploratoria del segmento 18–25" subtitle={`encuesta sintética · n = ${number(segment?.n)} · sin inferencia causal`} exportRows={segment ? [{ ...segment }] : []} loading={evidenceQuery.isLoading} error={evidenceQuery.error} empty={!segment?.n} onRetry={evidenceQuery.refetch} onRefresh={evidenceQuery.refetch}>
-      {segment ? <div className="descriptive-grid descriptive-grid--evidence"><Descriptive label="Visita semanal" mean={segment.visita_media} sd={segment.visita_de} /><Descriptive label="Aprovechamiento" mean={segment.aprovechamiento_media} sd={segment.aprovechamiento_de} /><Descriptive label="Atractivo" mean={segment.atractivo_media} sd={segment.atractivo_de} /><Descriptive label="Satisfacción" mean={segment.satisfaccion_media} sd={segment.satisfaccion_de} /><PercentStat label="Identifica promociones" value={segment.identifica_porcentaje} /><PercentStat label="Percibe ahorro" value={segment.ahorro_porcentaje} /><PercentStat label="Prefiere 2x1" value={segment.prefiere_2x1_porcentaje} highlight /></div> : null}
-    </Tile>
+    <Tile id="modelo-ecuacion" title="Modelo de regresión lineal múltiple" subtitle="ecuación estimada" exportRows={asRows(data?.coeficientes ?? [])} empty={data?.coeficientes.length === 0} {...state}>{data ? <div className="equation-panel"><div className="equation"><span>Y = {number(data.modelo.intercepto, 2)}</span>{data.coeficientes.map((item, index) => <span key={item.variable}>{formatSigned(item.coeficiente_original)}·X<sub>{index + 1}</sub></span>)}</div><div className="equation-legend"><b>Y</b><span>= total_venta</span>{data.coeficientes.map((item, index) => <span key={item.variable}><b>X<sub>{index + 1}</sub></b> = {variableLabel(item.variable)}</span>)}</div></div> : null}</Tile>
   </div>;
 }
 
 export function PowerBiPage() {
-  const raw = import.meta.env.VITE_POWER_BI_EMBED_URL?.trim() ?? "";
-  let validUrl = "";
-  let invalid = false;
-  if (raw) {
-    try {
-      const url = new URL(raw);
-      if (url.protocol === "https:" && url.hostname === "app.powerbi.com") validUrl = url.toString(); else invalid = true;
-    } catch { invalid = true; }
-  }
-  return <Tile id="power-bi" title="Tablero Power BI" subtitle="contenedor 16:9 · configuración por entorno" exportRows={[]} badge={validUrl ? <span className="status-badge status-badge--success">Configurado</span> : undefined}>
-    {validUrl ? <div className="powerbi-frame"><iframe title="Dashboard Power BI Tambo" src={validUrl} allowFullScreen /></div> : <div className={`powerbi-placeholder ${invalid ? "powerbi-placeholder--error" : ""}`}><div className="powerbi-icon"><BarChart3 size={32} /></div><strong>{invalid ? "La URL configurada no es válida" : "Aún no hay un tablero conectado"}</strong><p>{invalid ? "VITE_POWER_BI_EMBED_URL debe usar HTTPS y pertenecer a app.powerbi.com." : "Publica el informe en Power BI y configura su enlace seguro en VITE_POWER_BI_EMBED_URL. El contenedor conservará la proporción 16:9."}</p><code>VITE_POWER_BI_EMBED_URL=https://app.powerbi.com/view?r=…</code></div>}
+  const envUrl = import.meta.env.VITE_POWER_BI_EMBED_URL?.trim() ?? "";
+  const [savedUrl, setSavedUrl] = useState(() => envUrl || window.localStorage.getItem("tambo-power-bi-url") || "");
+  const [draftUrl, setDraftUrl] = useState(savedUrl);
+  const [invalid, setInvalid] = useState(false);
+  const validUrl = validatePowerBiUrl(savedUrl);
+  useEffect(() => setDraftUrl(savedUrl), [savedUrl]);
+  const connect = (event: React.FormEvent) => {
+    event.preventDefault();
+    const next = validatePowerBiUrl(draftUrl);
+    if (!next) { setInvalid(true); return; }
+    window.localStorage.setItem("tambo-power-bi-url", next);
+    setSavedUrl(next);
+    setInvalid(false);
+  };
+  return <Tile id="power-bi" title="Tablero Power BI" subtitle="contenedor 16:9 · listo para embeber" exportRows={[]} badge={validUrl ? <span className="status-badge status-badge--success">Configurado</span> : undefined}>
+    {validUrl ? <div className="powerbi-frame"><iframe title="Dashboard Power BI Tambo" src={validUrl} allowFullScreen /></div> : <div className={`powerbi-placeholder ${invalid ? "powerbi-placeholder--error" : ""}`}><div className="powerbi-icon"><BarChart3 size={32} /></div><strong>{invalid ? "La URL ingresada no es válida" : "Aún no hay un tablero conectado"}</strong><p>{invalid ? "Usa un enlace HTTPS publicado desde app.powerbi.com." : "Pega la URL de publicación de Power BI para incrustar el informe interactivo. El contenedor mantiene la proporción 16:9 en cualquier pantalla."}</p><form className="powerbi-connect" onSubmit={connect}><label><span className="sr-only">URL pública de Power BI</span><input type="url" value={draftUrl} onChange={(event) => { setDraftUrl(event.target.value); setInvalid(false); }} placeholder="https://app.powerbi.com/view?r=…" /></label><button type="submit">Conectar</button></form></div>}
   </Tile>;
 }
 
@@ -180,8 +175,7 @@ export function ModelPage() {
     <Tile id="modelo-dimensional" title="Modelo dimensional — esquema copo de nieve" subtitle="Hecho_Ventas + dimensiones normalizadas · pasa el cursor para resaltar relaciones" className="model-diagram-tile">
       <SnowflakeDiagram />
     </Tile>
-    <div className="analytic-extension"><div><span>Extensión analítica · 4 tablas</span><strong>Fuentes y resultados fuera del núcleo comercial</strong></div><div className="analytic-extension__nodes"><SchemaNode title="Encuesta_Clientes" detail="50 respuestas sintéticas" tone="teal" /><SchemaNode title="Modelo_Predictivo" detail="versión · métricas" tone="coral" /><SchemaNode title="Coeficiente_Modelo" detail="6 variables" /><SchemaNode title="Prediccion_Venta" detail="30 observaciones" /></div></div>
-    <div className="document-grid document-grid--3"><InfoCard label="Granularidad" value="Una transacción" text="Cada fila representa una venta individual en la sede UC." /><InfoCard label="Integridad" value="100% referencial" text="Claves foráneas y restricciones preservan la consistencia." /><InfoCard label="Motor cloud" value="PostgreSQL" text="El mismo modelo académico, reproducido en Supabase." /></div>
+    <div className="document-grid document-grid--3 model-summary"><InfoCard label="Tabla de hechos" value="Hecho_Ventas" text="5 medidas: cantidad, total, costo, descuento y margen. Grano: una línea de venta." /><InfoCard label="Dimensiones" value="5 dimensiones" text="Producto, Tienda, Promoción, Cliente y Tiempo enlazadas por claves foráneas." /><InfoCard label="Normalización" value="8 subdimensiones" text="Copo de nieve: jerarquías Categoría, Ciudad, Tipo, Campaña y Segmento normalizadas." /></div>
   </div>;
 }
 
@@ -318,8 +312,30 @@ function highlightSql(line: string) {
   });
 }
 
-function DataTable({ rows, columns }: { rows: Record<string, unknown>[]; columns: Array<{ key: string; label: string; format?: (value: unknown) => string }> }) {
-  return <div className="table-scroll"><table className="data-table"><thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id_promocion ?? row.id_producto ?? index)}>{columns.map((column) => <td key={column.key}>{column.format ? column.format(row[column.key]) : String(row[column.key] ?? "—")}</td>)}</tr>)}</tbody></table></div>;
+function DataTable({ rows, columns }: { rows: Record<string, unknown>[]; columns: Array<{ key: string; label: string; format?: (value: unknown, row: Record<string, unknown>) => React.ReactNode }> }) {
+  return <div className="table-scroll"><table className="data-table"><thead><tr>{columns.map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id_promocion ?? row.id_producto ?? index)}>{columns.map((column) => <td key={column.key}>{column.format ? column.format(row[column.key], row) : String(row[column.key] ?? "—")}</td>)}</tr>)}</tbody></table></div>;
+}
+
+function PerceptionBars({ data }: { data: Array<{ label: string; value: number }> }) {
+  return <div className="perception-bars">{data.map((item, index) => <div className="perception-row" style={{ "--row-delay": `${index * 90}ms` } as React.CSSProperties} key={item.label}><div><span>{item.label}</span><b>{number(item.value, 1)}%</b></div><div className="perception-track"><i style={{ width: `${Math.min(100, item.value)}%` }} /></div></div>)}</div>;
+}
+
+function CustomerStatisticsTable({ segment }: { segment: CustomersData["segmento1825"] }) {
+  const rows = [
+    { label: "Frecuencia de visita semanal", scale: "0–3", mean: segment.visita_media, sd: segment.visita_de },
+    { label: "Aprovechamiento de promociones", scale: "0–3", mean: segment.aprovechamiento_media, sd: segment.aprovechamiento_de },
+    { label: "Percepción de atractivo", scale: "1–3", mean: segment.atractivo_media, sd: segment.atractivo_de },
+    { label: "Satisfacción con promociones", scale: "1–3", mean: segment.satisfaccion_media, sd: segment.satisfaccion_de },
+  ];
+  return <div className="table-scroll"><table className="data-table statistics-table"><thead><tr><th>Variable</th><th>Escala</th><th>Media</th><th>Desv. est.</th><th>Distribución</th></tr></thead><tbody>{rows.map((row) => <tr key={row.label}><td>{row.label}</td><td>{row.scale}</td><td>{number(row.mean, 2)}</td><td>{number(row.sd, 2)}</td><td><div className="distribution-track"><i style={{ width: `${Math.min(100, row.mean / 3 * 100)}%` }} /></div></td></tr>)}</tbody></table></div>;
+}
+
+function PredictorBars({ data }: { data: PredictiveData["coeficientes"] }) {
+  const max = Math.max(...data.map((item) => Math.abs(item.coeficiente_estandarizado)), 1);
+  return <div className="predictor-bars">{data.map((item, index) => {
+    const value = item.coeficiente_estandarizado;
+    return <div className="predictor-row" style={{ "--row-delay": `${index * 70}ms` } as React.CSSProperties} key={item.variable}><b>X<sub>{index + 1}</sub></b><span>{variableLabel(item.variable)}</span><div><i className={value < 0 ? "predictor-negative" : ""} style={{ width: `${Math.max(4, Math.abs(value) / max * 100)}%` }} /></div><strong>{value < 0 ? "−" : "+"}{number(Math.abs(value), 2)}</strong></div>;
+  })}</div>;
 }
 
 function Descriptive({ label, mean, sd }: { label: string; mean: number; sd: number }) {
@@ -336,7 +352,7 @@ function labelTime(value: string) {
 }
 
 function variableLabel(variable: string) {
-  const labels: Record<string, string> = { porcentaje_descuento: "% descuento", tipo_promocion_codigo: "Tipo promoción", categoria_codigo: "Categoría", es_fin_semana: "Fin de semana", franja_horaria_codigo: "Franja horaria", edad_cliente: "Edad cliente" };
+  const labels: Record<string, string> = { porcentaje_descuento: "% de descuento", tipo_promocion_codigo: "Tipo de promoción", codigo_tipo_promocion: "Tipo de promoción", categoria_codigo: "Categoría", codigo_categoria: "Categoría", es_fin_semana: "Temporalidad", franja_horaria_codigo: "Franja horaria", codigo_franja_horaria: "Franja horaria", edad_cliente: "Edad del cliente" };
   return labels[variable] ?? variable;
 }
 
@@ -347,4 +363,22 @@ function variableSymbol(variable: string) {
 
 function formatSigned(value: number) {
   return `${value < 0 ? "−" : "+"} ${number(Math.abs(value), 4)}`;
+}
+
+function formatPercentSigned(value: number) {
+  return `${value > 0 ? "+" : ""}${number(value, 1)}%`;
+}
+
+function formatAgeRange(value: string) {
+  return value.replace(/\s*a\s*|\s*-\s*/i, "–").replace(/\s*años$/i, "");
+}
+
+function validatePowerBiUrl(value: string) {
+  if (!value.trim()) return "";
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === "https:" && parsed.hostname === "app.powerbi.com" ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
 }

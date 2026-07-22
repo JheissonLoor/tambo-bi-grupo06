@@ -49,7 +49,9 @@ const edges: Array<[string, string]> = [
 const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
 export function SnowflakeDiagram() {
-  const [activeId, setActiveId] = useState("");
+  const [hoveredId, setHoveredId] = useState("");
+  const [selectedId, setSelectedId] = useState("dim_tiempo");
+  const activeId = hoveredId || selectedId;
   const progress = useAnimatedProgress("snowflake-diagram", 1100);
   const activeNode = nodeMap.get(activeId) ?? nodes[0];
   const table = dataDictionary.find((item) => item.name === activeNode.id);
@@ -67,7 +69,7 @@ export function SnowflakeDiagram() {
   return (
     <div className={`snowflake-diagram ${activeId ? "snowflake-diagram--active" : ""}`}>
       <div className="snowflake-diagram__scroll" tabIndex={0} aria-label="Diagrama dimensional desplazable">
-        <svg className="snowflake-svg" viewBox="0 0 1260 800" role="img" aria-labelledby="snowflake-title snowflake-description" onMouseLeave={() => setActiveId("")}>
+        <svg className="snowflake-svg" viewBox="0 0 1260 800" role="img" aria-labelledby="snowflake-title snowflake-description" onMouseLeave={() => setHoveredId("")}>
           <title id="snowflake-title">Modelo dimensional en copo de nieve</title>
           <desc id="snowflake-description">Hecho Ventas conectado con cinco dimensiones y ocho subdimensiones normalizadas.</desc>
           <defs>
@@ -96,10 +98,12 @@ export function SnowflakeDiagram() {
                   role="button"
                   tabIndex={0}
                   aria-label={`${kindLabel(node.kind)} ${node.label}. ${tableData?.columns.length ?? 0} columnas`}
-                  onMouseEnter={() => setActiveId(node.id)}
-                  onFocus={() => setActiveId(node.id)}
-                  onClick={() => setActiveId(node.id)}
-                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActiveId(node.id); } }}
+                  aria-pressed={selectedId === node.id}
+                  onMouseEnter={() => setHoveredId(node.id)}
+                  onFocus={() => setHoveredId(node.id)}
+                  onBlur={() => setHoveredId("")}
+                  onClick={() => setSelectedId((current) => current === node.id ? "dim_tiempo" : node.id)}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId((current) => current === node.id ? "dim_tiempo" : node.id); } }}
                 >
                   <rect x={node.x} y={node.y} width={node.width} height={node.height} rx={node.kind === "fact" ? 15 : 11} />
                   <text className="snowflake-node__kind" x={node.x + 14} y={node.y + (node.kind === "fact" ? 25 : 18)}>{kindLabel(node.kind)}</text>

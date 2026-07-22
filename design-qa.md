@@ -2,51 +2,67 @@
 
 ## Evidencia
 
-- Fuente visual: `https://claude.ai/code/artifact/6f1fa196-5980-4f05-a4d3-fd8a7897e5c0`
-- Captura de referencia: `tests/visual/reference-summary-1440x940.png`
-- Implementación: `http://127.0.0.1:4173/resumen`
-- Captura de implementación: `tests/visual/implementation-summary-1440x940.png`
-- Viewport y estado: 1440 x 940 CSS px, `deviceScaleFactor: 1`, tema oscuro, página Resumen, filtros globales sin selección y datos cargados.
-- Dimensiones: ambas capturas tienen 1440 x 940 px; no se aplicó reescalado ni normalización de densidad.
+- Fuentes visuales:
+  - `C:\Users\LENOVO\AppData\Local\Temp\codex-clipboard-6e70de57-f24b-4fdd-b264-5136acb52043.png` (Promociones, 1652 x 890 px).
+  - `C:\Users\LENOVO\AppData\Local\Temp\codex-clipboard-6c2d5a54-df19-40c1-a62e-5bc6be8475d1.png` (Clientes, 1647 x 890 px).
+  - `C:\Users\LENOVO\AppData\Local\Temp\codex-clipboard-966658e4-8946-461d-a30e-4e50ac8b59a3.png` (Predictivo, 1650 x 903 px).
+  - `C:\Users\LENOVO\AppData\Local\Temp\codex-clipboard-bf0eefd2-671c-4fe4-9e2a-1f653b947af7.png` (Power BI, 1645 x 894 px).
+  - `C:\Users\LENOVO\AppData\Local\Temp\codex-clipboard-0f3b060d-0c32-4b7f-b413-91a28df75b28.png` (Modelo, 1648 x 884 px).
+- Implementación local: `http://127.0.0.1:4173`.
+- Capturas de implementación:
+  - `C:\Users\LENOVO\AppData\Local\Temp\tambo-qa-promociones-final.png`.
+  - `C:\Users\LENOVO\AppData\Local\Temp\tambo-qa-clientes-final.png`.
+  - `C:\Users\LENOVO\AppData\Local\Temp\tambo-qa-predictivo-final.png`.
+  - `C:\Users\LENOVO\AppData\Local\Temp\tambo-qa-powerbi.png`.
+  - `C:\Users\LENOVO\AppData\Local\Temp\tambo-qa-modelo-scrolled.png`.
+- Viewport: 1650 x 900 CSS px, densidad 1, tema oscuro, escritorio y datos de Supabase cargados.
+- Normalización: las referencias varían entre 1645 y 1652 px de ancho; se compararon al mismo breakpoint y escala visual 1:1, sin reescalar su contenido.
 
 ## Comparación de vista completa
 
-La referencia y la implementación se compararon juntas en el mismo pase visual. Se conserva la estructura principal: sidebar de 250 px, encabezado con slicers, cuatro KPI cards, tendencia dominante, barras por formato, margen por categoría, hallazgo crítico y tabla de detalle. Los cambios numéricos y la geometría de los gráficos son esperados porque la implementación usa las consultas reales del DataMart y los cuatro KPIs académicos exigidos, no los mocks del artifact.
+Cada referencia y su implementación se abrieron juntas en el mismo pase visual. Promociones conserva las dos gráficas superiores y la tabla completa; Clientes reproduce la cuadrícula 2 x 2 y la tabla inferior; Predictivo conserva cuatro KPI, scatter dominante, panel lateral y ecuación; Power BI replica el estado claro 16:9; Modelo reproduce la selección de `Dim_Tiempo`, la conexión ámbar, el inspector y las tres tarjetas inferiores.
+
+## Comparación focal
+
+- Promociones: alerta, barra negativa rayada y columnas Categoría/Marca revisadas a escala completa.
+- Clientes: tamaño del donut, alturas de las dos filas y arranque de la tabla ajustados contra la referencia.
+- Predictivo: altura del scatter y alineación superior independiente del panel de variables verificadas tras la segunda captura.
+- Modelo: se comparó además el estado desplazado para leer el inspector y `Normalización · 8 subdimensiones`.
+- Power BI: se verificaron borde discontinuo, icono, copy, campo URL y CTA `Conectar`.
 
 ## Superficies de fidelidad
 
-- Tipografía: Archivo para títulos, Inter para interfaz y JetBrains Mono para metadatos; pesos, jerarquía, truncado y contraste coinciden con el lenguaje del artifact.
-- Espaciado y layout: ritmo de 13-15 px entre tiles, radios de 8-10 px, bordes discretos y proporciones 60/40 en el bloque analítico. No hay desborde horizontal a 1440, 1024 o 390 px.
-- Color: se preservan navy oscuro, superficies azul-gris, ámbar, coral, teal y violeta mediante tokens CSS.
-- Imágenes y activos: la referencia no usa fotografía ni ilustración. Los iconos se implementan con Lucide; los gráficos SVG son visualizaciones de datos requeridas, no sustitutos de activos visuales.
-- Copy: navegación y páginas documentales mantienen la nomenclatura del artifact. Los textos métricos se ajustaron al contrato académico y los nombres del equipo se verificaron contra `FINAL IB_GRUPO06.pdf`.
-- Estados: skeleton, sin datos, error con reintento, actualización, CSV, fullscreen con rechazo controlado y placeholder Power BI fueron implementados.
-
-No se necesitó un recorte focal adicional: a escala 1:1, la captura completa permite leer los slicers, KPI, títulos, leyendas, iconos, bordes y el bloque de hallazgo. Los estados móviles se revisaron por separado a 390 x 844 px y la vista tablet a 1024 x 940 px.
+- Tipografía: Space Grotesk, Inter y JetBrains Mono mantienen jerarquía, peso, tracking y densidad equivalentes a las referencias.
+- Espaciado y layout: sidebar de 250 px, topbar compacto, grids 2 x 2, radios de 16 px, separaciones de 16 px y proporciones de cada bloque alineadas con las capturas.
+- Color: fondo navy, superficies azul-gris, ámbar, coral, teal y violeta conservados mediante tokens semánticos.
+- Activos: se sustituyó el símbolo de maqueta por el wordmark real obtenido del sitio oficial de Tambo+. Lucide permanece como biblioteca de iconos; los SVG restantes son visualizaciones de datos, no sustitutos de marca.
+- Copy: títulos, subtítulos, alertas, columnas y etiquetas reproducen la nomenclatura aprobada. Los valores proceden del DataMart y no se hardcodearon desde las capturas.
 
 ## Historial de iteraciones P0/P1/P2
 
-1. P2 - La primera implementación del Resumen tenía dos gráficos 50/50 y omitía margen por categoría y detalle de promociones.
-   - Corrección: se restauró la jerarquía 60/40, se agregó margen por categoría, hallazgo y tabla de detalle con datos reales.
-   - Evidencia posterior: `tests/visual/implementation-summary-1440x940.png`.
-2. P2 - Los slicers iniciales eran oscuros y la vista tablet presentaba desborde por el contenido mínimo del hallazgo.
-   - Corrección: se igualaron los controles claros de la referencia, se contuvo el scroll de filtros y el bloque inferior pasa a una columna bajo 1240 px.
-   - Evidencia posterior: 1024 x 940 sin overflow y navegación/controles utilizables.
-3. P2 - La tendencia tenía una sola serie y el margen se mostraba con barras divergentes.
-   - Corrección: la RPC devuelve ventas con y sin promoción por fecha; se renderizan dos series y se recuperó el donut de utilidad por categoría.
-   - Evidencia posterior: captura final 1440 x 940 con leyenda de ambas series y donut.
+1. P0 - La primera captura local mostraba estados de error porque faltaban las variables públicas de Supabase.
+   - Corrección: se sincronizó el entorno Production de Vercel en `.env.local`, ignorado por Git, y se reinició el preview.
+   - Evidencia posterior: las cinco rutas cargan datos y `agent-browser errors` no registra errores.
+2. P2 - El wordmark oficial comprimía el descriptor y el control de colapso.
+   - Corrección: ancho medido de 82 px, reserva lateral para el control y posicionamiento absoluto del botón.
+   - Evidencia posterior: `tambo-qa-promociones-final.png` y `tambo-qa-clientes-final.png`.
+3. P2 - Predictivo quedaba demasiado compacto y estiraba el panel de variables hasta la altura del scatter.
+   - Corrección: scatter de 463 px, gráfico sin tope artificial de 285 px y panel lateral alineado al inicio.
+   - Evidencia posterior: `tambo-qa-predictivo-final.png`.
+4. P2 - La selección inicial del modelo resaltaba todas las relaciones del hecho.
+   - Corrección: `Dim_Tiempo` queda seleccionado, solo su relación usa brillo ámbar y el hecho conserva su jerarquía naranja.
+   - Evidencia posterior: `tambo-qa-modelo-scrolled.png`.
 
 ## Pruebas de interacción
 
-- Las 12 rutas, incluido el diccionario de datos, cargan sin estado de error.
-- Categoría Bebidas cambió los KPI y persistió como `?categoria=1` entre Resumen y Ventas.
-- Limpiar filtros restauró S/ 675.95, ticket S/ 6.76, 100 transacciones y margen S/ 110.15.
-- Menú móvil abre/cierra a 390 px; la grilla KPI usa dos columnas y no desborda.
-- Actualizar repite la consulta; CSV inicia la exportación; un rechazo del Fullscreen API muestra un mensaje controlado.
-- Una pestaña limpia no registró errores de consola originados por la aplicación.
+- Las rutas Promociones, Clientes, Predictivo, Power BI y Modelo cargaron con datos o con su estado vacío previsto.
+- El filtro Tienda abrió su listbox con `UC · Av. Universitaria`, `UC · Puerta 3` y `UC · Óvalo`; la selección respondió y volvió a consultar los datos.
+- El modelo mantiene selección por clic/teclado y actualiza el inspector accesible.
+- Power BI presenta input URL y botón Conectar; solo acepta HTTPS de `app.powerbi.com` y conserva localmente una URL válida.
+- No se detectó overlay de Vite, página en blanco ni errores del navegador.
 
 ## Hallazgos finales
 
-No quedan hallazgos P0 o P1 conocidos. La validación técnica está rotulada como sintética y la evidencia de encuesta se presenta por separado para evitar sobreafirmaciones. Como diferencia P3 aceptada, el artifact se captura dentro del encabezado de Claude y sus valores mock no coinciden con los datos académicos; la aplicación conserva la intención visual y muestra exclusivamente cifras SQL verificables.
+No quedan hallazgos P0, P1 o P2. Se aceptan como P3 intencionales las diferencias numéricas, el tercer género de la encuesta y la sexta variable predictora: provienen de los datos reales del proyecto y preservan exactitud académica frente a los valores ilustrativos de las capturas. El cambio de la marca de maqueta al wordmark magenta también es intencional y responde a la petición explícita de usar el logo verdadero.
 
 final result: passed
