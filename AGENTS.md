@@ -10,8 +10,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 ## Durable design direction
 
-- Treat `C:\Users\LENOVO\Downloads\Tablero Tambo (offline).html` and the supplied Sede UC screenshots as the visual source of truth for this dashboard.
+- Treat `C:\Users\LENOVO\Downloads\Tablero de Promociones Tambo+.zip` as the most detailed source of truth for layout, interaction states, animation timings, chart behavior, and motion accessibility. Use `Tablero Tambo (offline).html` and the supplied Sede UC screenshots as supporting visual references.
 - Keep the product identity as `Tambo+` with the descriptor `TABLERO · SEDE UC`.
-- Preserve the dark executive visual system: compact sidebar, amber/coral/violet gradient brand mark, white filter chips with dark custom menus, 16 px dashboard cards, Space Grotesk display typography, Inter UI text, JetBrains Mono metadata, and restrained glow/motion.
+- Preserve the dark executive visual system: compact sidebar, amber/coral/violet gradient brand mark, white filter chips with dark custom menus, 16 px dashboard cards, Space Grotesk display typography, Inter UI text, JetBrains Mono metadata, and clearly perceptible but professional motion.
+- Motion is part of the product, not decoration: use the ZIP timings and behaviors for page rise, staggered cards, 950 ms KPI count-up, animated bars/lines/donuts/scatter points, hover dimming, cursor-following tooltips, pulsing alerts, and snowflake relationship drawing. Every motion must collapse to near-zero duration under `prefers-reduced-motion: reduce`.
 - The data-model page must show the connected interactive snowflake schema, including the fact table, dimensions, subdimensions, relationship lines, and a field inspector; do not replace it with an unconnected card grid.
 - Apply this system consistently to every dashboard and documentation route, including responsive desktop and mobile states.
