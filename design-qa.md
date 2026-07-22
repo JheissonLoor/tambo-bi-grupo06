@@ -65,4 +65,19 @@ Cada referencia y su implementación se abrieron juntas en el mismo pase visual.
 
 No quedan hallazgos P0, P1 o P2. Se aceptan como P3 intencionales las diferencias numéricas, el tercer género de la encuesta y la sexta variable predictora: provienen de los datos reales del proyecto y preservan exactitud académica frente a los valores ilustrativos de las capturas. El cambio de la marca de maqueta al wordmark magenta también es intencional y responde a la petición explícita de usar el logo verdadero.
 
+## Verificación de marca y movimiento (22 de julio de 2026)
+
+- Referencias del fallo:
+  - `C:\Users\LENOVO\AppData\Local\Temp\codex-clipboard-9fd1d0cf-6e63-41c5-9ba3-d6ac051065e3.png` (wordmark roto en el sidebar).
+  - `C:\Users\LENOVO\AppData\Local\Temp\codex-clipboard-7d8e4528-7f6f-488d-a661-9e32a7729097.png` (favicon anterior).
+- Evidencia corregida: `C:\Users\LENOVO\AppData\Local\Temp\tambo-qa-clientes-logo-motion.png`, viewport 1648 x 930 px.
+- Marca: el wordmark oficial y el sello/favicon oficial de `tambo.pe` se integraron como recursos locales incrustados. La inspección del navegador confirmó `naturalWidth > 0`, fuente `data:image/webp` para el wordmark y `data:image/png` para el favicon; no quedan hotlinks de Tambo o Justo en el frontend.
+- Entrada: al volver a Clientes se verificó `tamboRise` en la ruta, con cinco skeletons iniciales y shimmer antes de revelar los datos.
+- Progresión: a los 1.2 s no quedaban skeletons y la barra de percepción había alcanzado su ancho final; percepciones, distribución, predictor y mini-progresos comparten el progreso `requestAnimationFrame` de 950 ms con easing cúbico y timeout de respaldo.
+- Interacción: el hover sobre `18–25` mantuvo el elemento activo en opacidad 1, atenuó los demás a 0.38 y mostró el tooltip `18–25 · 50.0%`.
+- Rutas: Promociones, Clientes, Predictivo, Power BI y Modelo cargaron con sus títulos y tarjetas, sin overlay de Vite ni skeletons pendientes en estado final.
+- Accesibilidad: `prefers-reduced-motion: reduce` conserva la anulación global de animaciones y el hook entrega inmediatamente el estado final.
+
+No quedan hallazgos P0, P1 o P2 en esta iteración.
+
 final result: passed

@@ -36,8 +36,11 @@ export function Tile({
 }: TileProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  const hasLoadingState = loading !== undefined;
+  const [minimumLoadingVisible, setMinimumLoadingVisible] = useState(hasLoadingState);
   const tileRef = useRef<HTMLElement>(null);
   const actionTimerRef = useRef<number | undefined>(undefined);
+  const loadingStartedAtRef = useRef(Date.now());
   const menuId = useId();
 
   useEffect(() => {
@@ -50,6 +53,22 @@ export function Tile({
   }, [menuOpen]);
 
   useEffect(() => () => window.clearTimeout(actionTimerRef.current), []);
+
+  useEffect(() => {
+    if (!hasLoadingState) return;
+
+    if (loading) {
+      loadingStartedAtRef.current = Date.now();
+      setMinimumLoadingVisible(true);
+      return;
+    }
+
+    const remaining = Math.max(0, 620 - (Date.now() - loadingStartedAtRef.current));
+    const timeout = window.setTimeout(() => setMinimumLoadingVisible(false), remaining);
+    return () => window.clearTimeout(timeout);
+  }, [hasLoadingState, loading]);
+
+  const showLoading = hasLoadingState && (Boolean(loading) || minimumLoadingVisible);
 
   const inform = (message: string) => {
     window.clearTimeout(actionTimerRef.current);
@@ -104,7 +123,7 @@ export function Tile({
       ) : null}
 
       <div className="tile__body">
-        {loading ? <TileSkeleton /> : error ? (
+        {showLoading ? <TileSkeleton /> : error ? (
           <div className="state-message state-message--error">
             <TriangleAlert size={23} />
             <strong>No se pudo cargar este bloque</strong>

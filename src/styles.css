@@ -481,12 +481,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .perception-row span { min-width: 0; flex: 1; color: #a4aebb; font-size: 11px; }
 .perception-row b { color: #e1e5eb; font: 700 12px "JetBrains Mono", monospace; }
 .perception-track { height: 9px; overflow: hidden; border-radius: 99px; background: #202936; }
-.perception-track i { display: block; height: 100%; border-radius: inherit; background: var(--amber); box-shadow: 0 0 16px rgba(245,166,35,.18); }
+.perception-track i { display: block; height: 100%; border-radius: inherit; background: var(--amber); box-shadow: 0 0 16px rgba(245,166,35,.18); will-change: width; }
 .statistics-table th:nth-child(n+2), .statistics-table td:nth-child(n+2) { text-align: center; }
 .statistics-table td:first-child { color: #aeb8c5; font-weight: 600; }
 .statistics-table td:nth-child(2), .statistics-table td:nth-child(3), .statistics-table td:nth-child(4) { font-family: "JetBrains Mono", monospace; }
 .distribution-track { width: 78px; height: 7px; overflow: hidden; margin-inline: auto; border-radius: 99px; background: #222b37; }
-.distribution-track i { display: block; height: 100%; border-radius: inherit; background: #91a0b5; }
+.distribution-track i { display: block; height: 100%; border-radius: inherit; background: #91a0b5; will-change: width; }
 
 .analysis-grid--predictive { grid-template-columns: minmax(0,1.12fr) minmax(380px,.88fr); }
 .analysis-grid--predictive > .tile:first-child { min-height: 463px; }
@@ -500,7 +500,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .predictor-row > b { color: var(--amber); font: 700 11px "JetBrains Mono", monospace; }
 .predictor-row > span { overflow: hidden; color: #a2adbb; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .predictor-row > div { height: 20px; overflow: hidden; border-radius: 6px; background: #202936; }
-.predictor-row i { display: block; height: 100%; border-radius: 6px; background: var(--amber); box-shadow: 0 4px 12px rgba(245,166,35,.16); }
+.predictor-row i { display: block; height: 100%; border-radius: 6px; background: var(--amber); box-shadow: 0 4px 12px rgba(245,166,35,.16); will-change: width; }
 .predictor-row i.predictor-negative { background: #91a0b5; box-shadow: none; }
 .predictor-row strong { color: #dce1e8; font: 700 10px "JetBrains Mono", monospace; text-align: right; }
 .equation-panel { display: grid; gap: 13px; }

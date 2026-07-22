@@ -9,6 +9,7 @@ import { filtersKey } from "../components/DashboardShell";
 import { useDashboardFilters } from "../context/FiltersContext";
 import { getCustomers, getPredictive, getPromotions, getSales, getSummary } from "../data/tamboDataService";
 import { dataDictionary } from "../data/dataDictionary";
+import { useAnimatedProgress } from "../hooks/useDashboardMotion";
 import type { CustomersData, PredictiveData } from "../types/dashboard";
 import { money, number } from "../utils/format";
 
@@ -317,7 +318,8 @@ function DataTable({ rows, columns }: { rows: Record<string, unknown>[]; columns
 }
 
 function PerceptionBars({ data }: { data: Array<{ label: string; value: number }> }) {
-  return <div className="perception-bars">{data.map((item, index) => <div className="perception-row" style={{ "--row-delay": `${index * 90}ms` } as React.CSSProperties} key={item.label}><div><span>{item.label}</span><b>{number(item.value, 1)}%</b></div><div className="perception-track"><i style={{ width: `${Math.min(100, item.value)}%` }} /></div></div>)}</div>;
+  const progress = useAnimatedProgress(data.map((item) => `${item.label}:${item.value}`).join("|"));
+  return <div className="perception-bars">{data.map((item, index) => <div className="perception-row" style={{ "--row-delay": `${index * 90}ms` } as React.CSSProperties} key={item.label}><div><span>{item.label}</span><b>{number(item.value, 1)}%</b></div><div className="perception-track"><i style={{ width: `${Math.min(100, item.value) * progress}%` }} /></div></div>)}</div>;
 }
 
 function CustomerStatisticsTable({ segment }: { segment: CustomersData["segmento1825"] }) {
@@ -327,14 +329,16 @@ function CustomerStatisticsTable({ segment }: { segment: CustomersData["segmento
     { label: "Percepción de atractivo", scale: "1–3", mean: segment.atractivo_media, sd: segment.atractivo_de },
     { label: "Satisfacción con promociones", scale: "1–3", mean: segment.satisfaccion_media, sd: segment.satisfaccion_de },
   ];
-  return <div className="table-scroll"><table className="data-table statistics-table"><thead><tr><th>Variable</th><th>Escala</th><th>Media</th><th>Desv. est.</th><th>Distribución</th></tr></thead><tbody>{rows.map((row) => <tr key={row.label}><td>{row.label}</td><td>{row.scale}</td><td>{number(row.mean, 2)}</td><td>{number(row.sd, 2)}</td><td><div className="distribution-track"><i style={{ width: `${Math.min(100, row.mean / 3 * 100)}%` }} /></div></td></tr>)}</tbody></table></div>;
+  const progress = useAnimatedProgress(rows.map((row) => `${row.label}:${row.mean}`).join("|"));
+  return <div className="table-scroll"><table className="data-table statistics-table"><thead><tr><th>Variable</th><th>Escala</th><th>Media</th><th>Desv. est.</th><th>Distribución</th></tr></thead><tbody>{rows.map((row) => <tr key={row.label}><td>{row.label}</td><td>{row.scale}</td><td>{number(row.mean, 2)}</td><td>{number(row.sd, 2)}</td><td><div className="distribution-track"><i style={{ width: `${Math.min(100, row.mean / 3 * 100) * progress}%` }} /></div></td></tr>)}</tbody></table></div>;
 }
 
 function PredictorBars({ data }: { data: PredictiveData["coeficientes"] }) {
   const max = Math.max(...data.map((item) => Math.abs(item.coeficiente_estandarizado)), 1);
+  const progress = useAnimatedProgress(data.map((item) => `${item.variable}:${item.coeficiente_estandarizado}`).join("|"));
   return <div className="predictor-bars">{data.map((item, index) => {
     const value = item.coeficiente_estandarizado;
-    return <div className="predictor-row" style={{ "--row-delay": `${index * 70}ms` } as React.CSSProperties} key={item.variable}><b>X<sub>{index + 1}</sub></b><span>{variableLabel(item.variable)}</span><div><i className={value < 0 ? "predictor-negative" : ""} style={{ width: `${Math.max(4, Math.abs(value) / max * 100)}%` }} /></div><strong>{value < 0 ? "−" : "+"}{number(Math.abs(value), 2)}</strong></div>;
+    return <div className="predictor-row" style={{ "--row-delay": `${index * 70}ms` } as React.CSSProperties} key={item.variable}><b>X<sub>{index + 1}</sub></b><span>{variableLabel(item.variable)}</span><div><i className={value < 0 ? "predictor-negative" : ""} style={{ width: `${Math.max(4, Math.abs(value) / max * 100) * progress}%` }} /></div><strong>{value < 0 ? "−" : "+"}{number(Math.abs(value), 2)}</strong></div>;
   })}</div>;
 }
 
@@ -343,7 +347,8 @@ function Descriptive({ label, mean, sd }: { label: string; mean: number; sd: num
 }
 
 function PercentStat({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
-  return <div className={`descriptive-card descriptive-card--percent ${highlight ? "descriptive-card--highlight" : ""}`}><span>{label}</span><strong>{number(value, 0)}%</strong><div className="mini-progress"><i style={{ width: `${Math.min(100, value)}%` }} /></div></div>;
+  const progress = useAnimatedProgress(`${label}:${value}`);
+  return <div className={`descriptive-card descriptive-card--percent ${highlight ? "descriptive-card--highlight" : ""}`}><span>{label}</span><strong>{number(value, 0)}%</strong><div className="mini-progress"><i style={{ width: `${Math.min(100, value) * progress}%` }} /></div></div>;
 }
 
 function labelTime(value: string) {
