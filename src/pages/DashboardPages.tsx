@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { AlertTriangle, ArrowRight, BadgeCheck, BarChart3, Database, Layers3, Search, ShieldCheck, Sparkles, Workflow } from "lucide-react";
 import { BarChart, DivergingBars, DonutChart, LineAreaChart, ScatterPlot } from "../components/Charts";
 import { KpiCard, Tile } from "../components/Tile";
+import { SnowflakeDiagram } from "../components/SnowflakeDiagram";
 import { filtersKey } from "../components/DashboardShell";
 import { useDashboardFilters } from "../context/FiltersContext";
 import { getCustomers, getPredictive, getPromotions, getSales, getSummary } from "../data/tamboDataService";
@@ -54,8 +55,8 @@ export function SummaryPage() {
         <Tile id="insight-2x1" title="Hallazgo crítico" subtitle="insight que justifica el proyecto" className="insight-tile" exportRows={data ? [{ ...data.insight2x1 }] : []} {...state}>
           {data ? <div className="insight-layout insight-layout--compact">
             <div className="insight-alert"><AlertTriangle size={26} /><div><strong>El 2x1 destruye margen</strong><span>Es el formato más preferido ({number(data.insight2x1.preferenciaPorcentaje, 0)}%) y registra margen negativo.</span></div></div>
+            <div className="insight-metric insight-metric--preference"><span>Preferencia</span><strong>{number(data.insight2x1.preferenciaPorcentaje, 0)}%</strong><b>Encuesta de clientes</b></div>
             <div className="insight-metric insight-metric--negative"><span>Margen 2x1</span><strong>{number(data.insight2x1.margenPorcentaje, 1)}%</strong><b>{money(data.insight2x1.margen)}</b></div>
-            <div className="insight-metric insight-metric--positive"><span>Margen combo</span><strong>{number(data.insight2x1.margenComboPorcentaje, 1)}%</strong><b>Alternativa rentable</b></div>
             <p>Recomendación: migrar volumen del 2x1 hacia combos, manteniendo la percepción de ahorro.</p>
           </div> : null}
         </Tile>
@@ -175,18 +176,13 @@ export function PowerBiPage() {
 }
 
 export function ModelPage() {
-  return <DocumentPage eyebrow="Modelo dimensional · 14 tablas comerciales" title="DataMart en copo de nieve" lead="El hecho de ventas concentra las medidas comerciales y se conecta con trece dimensiones normalizadas. La encuesta y los resultados de validación forman una extensión analítica separada.">
-    <div className="model-map" aria-label="Diagrama de las 14 tablas del modelo comercial">
-      <div className="model-map__fact"><SchemaNode icon={<Database />} title="Hecho_Ventas" detail="cantidad · venta · costo · descuento · margen" tone="amber" featured /></div>
-      <div className="model-map__branch"><span>Producto</span><SchemaNode icon={<Layers3 />} title="Dim_Producto" detail="producto · precio" tone="teal" /><SchemaNode title="Dim_Subcategoria" detail="subcategoría" /><SchemaNode title="Dim_Categoria" detail="categoría" /><SchemaNode title="Dim_Marca" detail="marca" /></div>
-      <div className="model-map__branch"><span>Ubicación</span><SchemaNode title="Dim_Tienda" detail="sede · código" /><SchemaNode title="Dim_Distrito" detail="distrito" /><SchemaNode title="Dim_Ciudad" detail="ciudad" /></div>
-      <div className="model-map__branch"><span>Promoción</span><SchemaNode icon={<Layers3 />} title="Dim_Promocion" detail="promoción · vigencia" tone="coral" /><SchemaNode title="Dim_TipoPromocion" detail="formato" /><SchemaNode title="Dim_Campania" detail="campaña" /></div>
-      <div className="model-map__branch"><span>Cliente</span><SchemaNode title="Dim_Cliente" detail="edad · género" /><SchemaNode title="Dim_TipoCliente" detail="segmento" /></div>
-      <div className="model-map__branch"><span>Tiempo</span><SchemaNode title="Dim_Tiempo" detail="fecha · mes · trimestre" /></div>
-    </div>
+  return <div className="page-stack model-page">
+    <Tile id="modelo-dimensional" title="Modelo dimensional — esquema copo de nieve" subtitle="Hecho_Ventas + dimensiones normalizadas · pasa el cursor para resaltar relaciones" className="model-diagram-tile">
+      <SnowflakeDiagram />
+    </Tile>
     <div className="analytic-extension"><div><span>Extensión analítica · 4 tablas</span><strong>Fuentes y resultados fuera del núcleo comercial</strong></div><div className="analytic-extension__nodes"><SchemaNode title="Encuesta_Clientes" detail="50 respuestas sintéticas" tone="teal" /><SchemaNode title="Modelo_Predictivo" detail="versión · métricas" tone="coral" /><SchemaNode title="Coeficiente_Modelo" detail="6 variables" /><SchemaNode title="Prediccion_Venta" detail="30 observaciones" /></div></div>
     <div className="document-grid document-grid--3"><InfoCard label="Granularidad" value="Una transacción" text="Cada fila representa una venta individual en la sede UC." /><InfoCard label="Integridad" value="100% referencial" text="Claves foráneas y restricciones preservan la consistencia." /><InfoCard label="Motor cloud" value="PostgreSQL" text="El mismo modelo académico, reproducido en Supabase." /></div>
-  </DocumentPage>;
+  </div>;
 }
 
 export function ArchitecturePage() {

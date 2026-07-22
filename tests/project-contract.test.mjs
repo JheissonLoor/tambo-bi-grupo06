@@ -37,6 +37,22 @@ test("la aceptación fija 30 predicciones para el conjunto de prueba", async () 
   assert.match(sql, /'metricas'->>'n'\)::integer <> 30/);
 });
 
+test("la sede UC conserva sus tres puntos de atención en todo despliegue", async () => {
+  const sql = await read("supabase/001_datamart_tambo.sql");
+  assert.match(sql, /UC · Av\. Universitaria/);
+  assert.match(sql, /UC · Puerta 3/);
+  assert.match(sql, /UC · Óvalo/);
+  assert.doesNotMatch(sql, /'Tambo (Centro|Lince|UC)'/);
+});
+
+test("el diagrama visualiza las 14 tablas y sus 13 relaciones comerciales", async () => {
+  const diagram = await read("src/components/SnowflakeDiagram.tsx");
+  const nodeBlock = diagram.slice(diagram.indexOf("const nodes"), diagram.indexOf("const edges"));
+  const edgeBlock = diagram.slice(diagram.indexOf("const edges"), diagram.indexOf("const nodeMap"));
+  assert.equal([...nodeBlock.matchAll(/\{ id: "/g)].length, 14);
+  assert.equal([...edgeBlock.matchAll(/^\s*\["[a-z_]+", "[a-z_]+"\],?$/gm)].length, 13);
+});
+
 test("la migración desplegable coincide con el SQL operativo", async () => {
   const files = await readdir(new URL("../supabase/migrations", import.meta.url));
   const migrations = files.filter((file) => file.endsWith("_datamart_tambo.sql"));

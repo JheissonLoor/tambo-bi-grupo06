@@ -15,6 +15,7 @@ type TileProps = {
   onRefresh?: () => void;
   exportRows?: Array<Record<string, unknown>>;
   badge?: ReactNode;
+  hideActions?: boolean;
 };
 
 export function Tile({
@@ -30,10 +31,12 @@ export function Tile({
   onRefresh,
   exportRows = [],
   badge,
+  hideActions = false,
 }: TileProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const tileRef = useRef<HTMLElement>(null);
+  const actionTimerRef = useRef<number | undefined>(undefined);
   const menuId = useId();
 
   useEffect(() => {
@@ -45,9 +48,12 @@ export function Tile({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
 
+  useEffect(() => () => window.clearTimeout(actionTimerRef.current), []);
+
   const inform = (message: string) => {
+    window.clearTimeout(actionTimerRef.current);
     setActionMessage(message);
-    window.setTimeout(() => setActionMessage(""), 2600);
+    actionTimerRef.current = window.setTimeout(() => setActionMessage(""), 2600);
   };
 
   const fullscreen = async () => {
@@ -80,12 +86,12 @@ export function Tile({
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
         {badge}
-        <button className="icon-button" type="button" aria-label={`Acciones de ${title}`} aria-expanded={menuOpen} aria-controls={menuId} aria-haspopup="menu" onClick={() => setMenuOpen((open) => !open)}>
+        {!hideActions ? <button className="icon-button" type="button" aria-label={`Acciones de ${title}`} aria-expanded={menuOpen} aria-controls={menuId} aria-haspopup="menu" onClick={() => setMenuOpen((open) => !open)}>
           <MoreVertical size={17} />
-        </button>
+        </button> : null}
       </header>
 
-      {menuOpen ? (
+      {menuOpen && !hideActions ? (
         <>
           <button className="menu-scrim" type="button" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} />
           <div id={menuId} className="tile-menu" role="menu" aria-label={`Acciones de ${title}`}>
@@ -130,10 +136,9 @@ type KpiCardProps = Omit<TileProps, "children" | "title"> & {
 
 export function KpiCard({ label, value, detail, tone = "amber", ...tileProps }: KpiCardProps) {
   return (
-    <Tile {...tileProps} title={label} className={`kpi-card kpi-card--${tone} ${tileProps.className ?? ""}`}>
+    <Tile {...tileProps} title={label} badge={tileProps.badge ?? <span className="neutral-badge">SEDE UC</span>} hideActions className={`kpi-card kpi-card--${tone} ${tileProps.className ?? ""}`}>
       <div className="kpi-card__value">{value}</div>
       <div className="kpi-card__detail">{detail}</div>
-      <span className="neutral-badge">Sin periodo previo</span>
     </Tile>
   );
 }

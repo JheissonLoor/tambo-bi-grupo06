@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useIsFetching, useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -124,6 +124,7 @@ export function DashboardShell({ page, children }: { page: string; children: Rea
 function GlobalFilters() {
   const { filters, setFilter, setDateRange, clearFilters, activeCount } = useDashboardFilters();
   const [dateOpen, setDateOpen] = useState(false);
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ["tambo", "filters"],
     queryFn: ({ signal }) => getFilterOptions(signal),
@@ -131,25 +132,38 @@ function GlobalFilters() {
   const period = query.data ? `${shortDate(query.data.fechaMin)} – ${shortDate(query.data.fechaMax)}` : "01 – 30 Jun 2026";
   const dateLabel = filters.fechaDesde || filters.fechaHasta
     ? `${filters.fechaDesde ? shortDate(filters.fechaDesde) : "Inicio"} – ${filters.fechaHasta ? shortDate(filters.fechaHasta) : "Fin"}`
-    : period;
+    : "Últimos 30 días";
 
   useEffect(() => {
-    if (!dateOpen) return;
+    if (!dateOpen && !openFilter) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDateOpen(false);
+      if (event.key === "Escape") {
+        setDateOpen(false);
+        setOpenFilter(null);
+      }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [dateOpen]);
+  }, [dateOpen, openFilter]);
+
+  const filterProps = (label: string) => ({
+    label,
+    open: openFilter === label,
+    onToggle: () => {
+      setDateOpen(false);
+      setOpenFilter((current) => current === label ? null : label);
+    },
+    onClose: () => setOpenFilter(null),
+  });
 
   return (
     <div className="filters" aria-label="Filtros globales">
-      <FilterSelect label="Tienda" value={filters.tiendaId} options={query.data?.tiendas ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("tiendaId", value)} />
-      <FilterSelect label="Categoría" value={filters.categoriaId} options={query.data?.categorias ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("categoriaId", value)} />
-      <FilterSelect label="Campaña" value={filters.campaniaId} options={query.data?.campanias ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("campaniaId", value)} />
-      <FilterSelect label="Cliente" value={filters.tipoClienteId} options={query.data?.tiposCliente ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("tipoClienteId", value)} />
+      <FilterSelect {...filterProps("Tienda")} value={filters.tiendaId} options={query.data?.tiendas ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("tiendaId", value)} />
+      <FilterSelect {...filterProps("Categoría")} value={filters.categoriaId} options={query.data?.categorias ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("categoriaId", value)} />
+      <FilterSelect {...filterProps("Campaña")} value={filters.campaniaId} options={query.data?.campanias ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("campaniaId", value)} />
+      <FilterSelect {...filterProps("Cliente")} value={filters.tipoClienteId} options={query.data?.tiposCliente ?? []} disabled={query.isLoading || query.isError} onChange={(value) => setFilter("tipoClienteId", value)} />
       <div className="date-filter">
-        <button className={`filter-chip ${filters.fechaDesde || filters.fechaHasta ? "filter-chip--active" : ""}`} type="button" onClick={() => setDateOpen((open) => !open)} aria-expanded={dateOpen} aria-controls="date-filter-popover" aria-haspopup="dialog">
+        <button className={`filter-chip ${filters.fechaDesde || filters.fechaHasta ? "filter-chip--active" : ""}`} type="button" onClick={() => { setOpenFilter(null); setDateOpen((open) => !open); }} aria-expanded={dateOpen} aria-controls="date-filter-popover" aria-haspopup="dialog">
           <span>Rango</span><b>{dateLabel}</b><ChevronDown size={14} />
         </button>
         {dateOpen ? (
@@ -170,16 +184,31 @@ function GlobalFilters() {
   );
 }
 
-function FilterSelect({ label, value, options, onChange, disabled }: { label: string; value: number | null; options: FilterOption[]; onChange: (value: number | null) => void; disabled?: boolean }) {
+function FilterSelect({ label, value, options, onChange, disabled, open, onToggle, onClose }: { label: string; value: number | null; options: FilterOption[]; onChange: (value: number | null) => void; disabled?: boolean; open: boolean; onToggle: () => void; onClose: () => void }) {
+  const selected = options.find((option) => option.id === value);
+  const orderedOptions = label === "Tienda" ? [...options].sort((first, second) => first.id - second.id) : options;
+  const displayName = (name: string) => label === "Tienda" ? name.replace(/^UC\s*[-–—·]\s*/i, "UC · ") : name;
+  const listId = `filter-${label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-")}`;
+  const choose = (nextValue: number | null) => {
+    onChange(nextValue);
+    onClose();
+  };
+
   return (
-    <label className={`select-chip ${value != null ? "select-chip--active" : ""}`}>
-      <span>{label}</span>
-      <select value={value ?? ""} onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)} disabled={disabled} aria-label={label}>
-        <option value="">Todos</option>
-        {options.map((option) => <option value={option.id} key={option.id}>{option.nombre}</option>)}
-      </select>
-      <ChevronDown size={14} />
-    </label>
+    <div className="select-filter">
+      <button className={`select-chip ${value != null ? "select-chip--active" : ""}`} type="button" disabled={disabled} onClick={onToggle} aria-label={`${label}: ${selected ? displayName(selected.nombre) : "Todos"}`} aria-haspopup="listbox" aria-expanded={open} aria-controls={listId}>
+        <span>{label}</span><b>{selected ? displayName(selected.nombre) : "Todos"}</b><ChevronDown size={14} />
+      </button>
+      {open ? (
+        <>
+          <button className="menu-scrim" type="button" aria-label={`Cerrar filtro ${label}`} onClick={onClose} />
+          <div id={listId} className="filter-menu" role="listbox" aria-label={`Opciones de ${label}`}>
+            <button type="button" role="option" aria-selected={value == null} className={value == null ? "filter-menu__option--selected" : ""} onClick={() => choose(null)}><span>Todos</span><b>✓</b></button>
+            {orderedOptions.map((option) => <button type="button" role="option" aria-selected={option.id === value} className={option.id === value ? "filter-menu__option--selected" : ""} onClick={() => choose(option.id)} key={option.id}><span>{displayName(option.nombre)}</span><b>✓</b></button>)}
+          </div>
+        </>
+      ) : null}
+    </div>
   );
 }
 
