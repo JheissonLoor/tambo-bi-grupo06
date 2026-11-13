@@ -1,3 +1,0 @@
-# Linguist overrides to ensure React / TypeScript frontend is recognized as primary language
-supabase/** linguist-vendored
-*.sql linguist-detectable=false
