@@ -187,11 +187,11 @@ scripts/             Modelo predictivo y preparación de build
 tests/               Pruebas y evidencia visual
 ```
 
-## Equipo
+## Equipo y Aportes Técnicos
 
 - Chávez Díaz Víctor Jesús
 - Flores Mamani Jorge
-- Loayza Ortega Jheisson
+- **Loayza Ortega Jheisson:** Modelado dimensional en esquema copo de nieve (`hecho_ventas`, dimensiones y jerarquías), diseño de vistas analíticas SQL y funciones RPC en PostgreSQL / Supabase, y desarrollo de componentes del dashboard interactivo en React + TypeScript.
 - Mendoza Ventura Emerson Junior
 - Salazar Tarazona Génesis Alexandra
 - Yaranga Guevara Mayra Joselyn
